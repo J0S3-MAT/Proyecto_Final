@@ -1,5 +1,14 @@
 <RCC>
     <qresource prefix="/imagenes">
         <file>imagenes/po_reposo.png</file>
+        <file>imagenes/po_caminar1.png</file>
+        <file>imagenes/po_caminar2.png</file>
+        <file>imagenes/po_caminar3.png</file>
+        <file>imagenes/po_caminar4.png</file>
+        <file>imagenes/po_caminar5.png</file>
+        <file>imagenes/po_caminar6.png</file>
+        <file>imagenes/po_salto1.png</file>
+        <file>imagenes/po_salto2.png</file>
+        <file>imagenes/po_salto3.png</file>
     </qresource>
 </RCC>
