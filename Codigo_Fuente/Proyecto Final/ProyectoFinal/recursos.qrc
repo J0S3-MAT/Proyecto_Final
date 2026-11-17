@@ -10,5 +10,12 @@
         <file>imagenes/po_salto1.png</file>
         <file>imagenes/po_salto2.png</file>
         <file>imagenes/po_salto3.png</file>
+        <file>imagenes/flor.png</file>
+        <file>imagenes/cabra_correr1.png</file>
+        <file>imagenes/cabra_correr2.png</file>
+        <file>imagenes/cabra_correr3.png</file>
+        <file>imagenes/cabra_correr4.png</file>
+        <file>imagenes/cabra_correr5.png</file>
+        <file>imagenes/cabra_correr6.png</file>
     </qresource>
 </RCC>

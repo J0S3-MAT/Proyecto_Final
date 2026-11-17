@@ -8,6 +8,13 @@
 #include <QElapsedTimer>
 #include <QGraphicsRectItem>
 #include <QPixmap> //para que camine
+#include "po.h"
+#include "plataformaoscilante.h"
+#include "flor.h"
+#include <QGraphicsTextItem>
+#include <vector> //para flores
+#include <QTimer> //para el contador
+#include "cabra.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -32,27 +39,18 @@ private:
     QGraphicsScene *escena;
     QGraphicsScene *escenaMenu;
     bool juegoIniciado = false;
-    QGraphicsPixmapItem *po = nullptr;
+    Po *personaje = nullptr;
     bool izquierda = false;
     bool derecha = false;
     QElapsedTimer reloj;
-    bool saltando = false;
-    bool sobrePlataforma = false;
-    bool cayendo = false;
-    double velocidadCaida = 0;
-    double tiempoSalto = 0;
-    double yInicioSalto = 0;
-    QGraphicsRectItem *plataforma;
+    std::vector<PlataformaOscilante*> plataformas;
     double tiempoJuego = 0;
-    //para que camine
-    QPixmap imagenReposo;
-    QPixmap imagenCaminar[6];
-    int fotograma = 0;
-    double tiempoAnimacion = 0;
-    bool estabaCaminando = false;
-    bool mirandoIzquierda = false;
-    //para que salte
-    QPixmap imagenSalto[3];
+    double tiempoRestante = 60.0;
+    std::vector<Flor*> flores;
+    QGraphicsTextItem *textoFlores = nullptr;
+    QGraphicsTextItem *textoTiempo = nullptr;
+    QTimer *temporizador = nullptr;
+    Cabra *cabra = nullptr;
 
     void actualizarJuego();
 };

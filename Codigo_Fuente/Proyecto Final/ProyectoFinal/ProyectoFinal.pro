@@ -7,11 +7,19 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    cabra.cpp \
+    flor.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    plataformaoscilante.cpp \
+    po.cpp
 
 HEADERS += \
-    mainwindow.h
+    cabra.h \
+    flor.h \
+    mainwindow.h \
+    plataformaoscilante.h \
+    po.h
 
 FORMS += \
     mainwindow.ui

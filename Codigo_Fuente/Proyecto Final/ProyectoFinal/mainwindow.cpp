@@ -13,6 +13,8 @@
 #include <QGraphicsProxyWidget>
 #include <QGraphicsTextItem>
 #include <QFont>
+//para plataformas aleatorias
+#include <QRandomGenerator>
 
 using namespace std;
 
@@ -26,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Crear el escenario
     escena = new QGraphicsScene(this);
-    escena->setSceneRect(0, 0, 900, 500);
+    escena->setSceneRect(0, 0, 2400, 500);
 
     // Mostrar el escenario en graphicsView
     ui->graphicsView->setScene(escena);
@@ -35,31 +37,50 @@ MainWindow::MainWindow(QWidget *parent)
     escena->setBackgroundBrush(QColor(170, 220, 255));
 
     // Dibujar un suelo provisional
-    escena->addRect(0, 420, 900, 80,QPen(Qt::NoPen),QBrush(QColor(90, 170, 90)));
+    escena->addRect(0, 420, 2400, 80, QPen(Qt::NoPen), QBrush(QColor(90, 170, 90)));
 
 
     //Abro la imagen
-    // Imagen de Po en reposo
-    imagenReposo = QPixmap(":/imagenes/imagenes/po_reposo.png").scaledToHeight(100, Qt::SmoothTransformation);
+    // Crear a Po mediante su propia clase
+    personaje = new Po(escena);
+    // Crear la cabra
+    cabra = new Cabra(escena);
 
-    po = escena->addPixmap(imagenReposo);
-    po->setPos(100, 320); //posición de la imagen
+    // Crear 5 plataformas con parametros aleatorios
+    for (int i = 0; i < 5; i++) {
+        int x = 300 + i * 400 + QRandomGenerator::global()->bounded(-70, 71);
+        int y = QRandomGenerator::global()->bounded(325, 351);
+        int amplitud = QRandomGenerator::global()->bounded(15, 26);
+        double periodo = 2.0 + QRandomGenerator::global()->bounded(0, 16) / 10.0;
 
-    // Cargar las 6 imagenes para caminar //para que camine
-    for (int i = 0; i < 6; i++) {
-        imagenCaminar[i] = QPixmap(QString(":/imagenes/imagenes/po_caminar%1.png").arg(i + 1)).scaledToHeight(100, Qt::SmoothTransformation);
+        plataformas.push_back(new PlataformaOscilante(escena, x, y, amplitud, periodo));
     }
 
-    // Cargar las 3 imagenes para saltar
-    for (int i = 0; i < 3; i++) {
-        imagenSalto[i] = QPixmap(QString(":/imagenes/imagenes/po_salto%1.png").arg(i + 1)).scaledToHeight(100, Qt::SmoothTransformation);
+    // Crear 15 flores en el suelo
+    for (int x = 150; x <= 2250; x += 150) {
+        int variacion = QRandomGenerator::global()->bounded(-40, 41);
+        flores.push_back(new Flor(escena, x + variacion, 390));
     }
 
-    plataforma = escena->addRect(0, 0, 120, 15, QPen(Qt::NoPen), QBrush(QColor(140, 90, 50)));
-    plataforma->setPos(450, 340);
+    // Crear tres flores sobre cada plataforma
+    for (PlataformaOscilante *plataforma : plataformas) {
+        for (int x = 15; x <= 75; x += 30) {
+            flores.push_back(new Flor(escena, x, -30, plataforma->obtenerRectangulo()));
+        }
+    }
+
+    // Contador de flores
+    textoFlores = escena->addText("Flores: 0/30", QFont("Arial", 16, QFont::Bold));
+    textoFlores->setDefaultTextColor(Qt::darkGreen);
+    textoFlores->setPos(20, 15);
+
+    // Contador de tiempo
+    textoTiempo = escena->addText("Tiempo: 90 s", QFont("Arial", 16, QFont::Bold));
+    textoTiempo->setDefaultTextColor(Qt::darkGreen);
+    textoTiempo->setPos(710, 15);
 
     // Temporizador del juego
-    QTimer *temporizador = new QTimer(this);
+    temporizador = new QTimer(this);
     connect(temporizador, &QTimer::timeout, this, &MainWindow::actualizarJuego);
 
     // Crear la escena del menu
@@ -80,7 +101,7 @@ MainWindow::MainWindow(QWidget *parent)
     botonEscena->setPos(360, 260);
 
     // Iniciar el juego al presionar el boton
-    connect(botonJugar, &QPushButton::clicked, this, [this, temporizador]() {
+    connect(botonJugar, &QPushButton::clicked, this, [this]() {
         ui->graphicsView->setScene(escena);
         juegoIniciado = true;
         reloj.start();
@@ -94,6 +115,10 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
+    if (!juegoIniciado) {
+        return;
+    }
+
     if (event->key() == Qt::Key_A) {
         izquierda = true;
     }
@@ -102,17 +127,18 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         derecha = true;
     }
 
-    if (event->key() == Qt::Key_Space && !saltando && !cayendo && !event->isAutoRepeat()) {
-        saltando = true;
-        sobrePlataforma = false;
-        tiempoSalto = 0;
-        yInicioSalto = po->y();
+    if (event->key() == Qt::Key_Space && !event->isAutoRepeat()) {
+        personaje->saltar();
     }
 }
 
 
 void MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
+    if (!juegoIniciado) {
+        return;
+    }
+
     if (event->isAutoRepeat()) {
         return;
     }
@@ -132,166 +158,96 @@ void MainWindow::actualizarJuego()
 
     tiempoJuego += dt;
 
+    // Actualizar el tiempo restante
+    tiempoRestante -= dt;
+
+    if (tiempoRestante < 0) {
+        tiempoRestante = 0;
+    }
+
+    // Mostrar el tiempo en pantalla
+    textoTiempo->setPlainText(QString("Tiempo: %1 s").arg(static_cast<int>(std::ceil(tiempoRestante))));
+
+    // Verificar si se termino el tiempo
+    if (tiempoRestante <= 0) {
+        temporizador->stop();
+        juegoIniciado = false;
+
+        if (personaje->obtenerFlores() < 30) {
+            QGraphicsTextItem *mensaje = escena->addText("TIEMPO AGOTADO\nNo reuniste las 30 flores", QFont("Arial", 22, QFont::Bold));
+            mensaje->setDefaultTextColor(Qt::darkRed);
+            mensaje->setPos(220, 190);
+            mensaje->setZValue(10);
+        }
+
+        return;
+    }
+
     // Movimiento armonico simple de la plataforma
-    const double centroY = 340;
-    const double amplitud = 30;
-    const double periodo = 2.5;
-
-    double yPlataforma = centroY + amplitud * sin(2 * 3.1416 * tiempoJuego / periodo);
-    plataforma->setY(yPlataforma);
-
-    // Po acompaña el movimiento de la plataforma
-    if (sobrePlataforma && !saltando) {
-        po->setY(plataforma->y() - po->boundingRect().height());
+    for (PlataformaOscilante *plataforma : plataformas) {
+        plataforma->actualizar(tiempoJuego);
     }
 
-    // Movimiento horizontal
-    if (izquierda) {
-        po->moveBy(-250 * dt, 0);
-        mirandoIzquierda = true;
-    }
+    // Movimiento horizontal de Po
+    personaje->mover(dt, izquierda, derecha);
 
-    if (derecha) {
-        po->moveBy(250 * dt, 0);
-        mirandoIzquierda = false;
-    }
+    // Movimiento de la cabra
+    cabra->actualizar(dt);
 
-    // Limites horizontales
-    if (po->x() < 0) {
-        po->setX(0);
-    }
+    // Actualizar salto, caida y contacto con la plataforma
+    personaje->actualizarMovimientoVertical(dt, plataformas);
 
-    if (po->x() + po->boundingRect().width() > 900) {
-        po->setX(900 - po->boundingRect().width());
-    }
-
-    // Detectar si Po sale de la plataforma
-    if (sobrePlataforma && !saltando) {
-        bool coincideX = po->x() + po->boundingRect().width() > plataforma->x() && po->x() < plataforma->x() + plataforma->rect().width();
-
-        if (!coincideX) {
-            sobrePlataforma = false;
-            cayendo = true;
-            velocidadCaida = 0;
+    // Recoleccion de flores
+    for (Flor *flor : flores) {
+        if (flor->recolectarSiToca(personaje->obtenerArea())) {
+            personaje->sumarFlor();
+            textoFlores->setPlainText(QString("Flores: %1/30").arg(personaje->obtenerFlores()));
         }
     }
 
-    // Caida de Po por gravedad
-    if (cayendo) {
-        velocidadCaida += 1000 * dt;
-        po->moveBy(0, velocidadCaida * dt);
+    // Verificar si Po completo el primer nivel
+    if (personaje->obtenerFlores() >= 30) {
+        temporizador->stop();
+        juegoIniciado = false;
 
-        // Detectar cuando Po llega al suelo
-        if (po->y() + po->boundingRect().height() >= 420) {
-            po->setY(420 - po->boundingRect().height());
-            cayendo = false;
-            velocidadCaida = 0;
-        }
-    }
+        QGraphicsTextItem *mensaje = escena->addText("¡NIVEL 1 COMPLETADO!", QFont("Arial", 24, QFont::Bold));
+        mensaje->setDefaultTextColor(Qt::darkGreen);
+        mensaje->setZValue(10);
 
-    // Salto parabolico
-    if (saltando) {
-        double yAnterior = po->y();
+        // Mostrar el mensaje en el centro de la pantalla
+        QPointF centro = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->rect().center());
+        mensaje->setPos(centro.x() - mensaje->boundingRect().width() / 2, centro.y() - mensaje->boundingRect().height() / 2);
 
-        tiempoSalto += dt;
-        double y = yInicioSalto - 500 * tiempoSalto + 0.5 * 1000 * tiempoSalto * tiempoSalto;
-        po->setY(y);
-
-        // Verificar si Po esta cayendo
-        bool cayendo = tiempoSalto >= 0.5;
-
-        // Verificar si Po coincide horizontalmente con la plataforma
-        bool coincideX = po->x() + po->boundingRect().width() > plataforma->x() && po->x() < plataforma->x() + plataforma->rect().width();
-
-        // Verificar si los pies de Po cruzan la superficie de la plataforma
-        bool coincideY = yAnterior + po->boundingRect().height() <= plataforma->y() && po->y() + po->boundingRect().height() >= plataforma->y();
-
-        // Aterrizaje sobre la plataforma
-        if (cayendo && coincideX && coincideY) {
-            po->setY(plataforma->y() - po->boundingRect().height());
-            saltando = false;
-            sobrePlataforma = true;
-        }
-
-        // Aterrizaje en el suelo
-        else if (po->y() + po->boundingRect().height() >= 420) {
-            po->setY(420 - po->boundingRect().height());
-            saltando = false;
-        }
+        return;
     }
 
     //para que camine
-    // Animacion de Po
-    bool caminando = (izquierda != derecha) && !saltando && !cayendo;
+    // Actualizar las animaciones de Po
+    personaje->actualizarAnimacion(dt, izquierda, derecha);
 
-    if (saltando || cayendo) {
-        QPixmap imagen;
+    // Camara horizontal
+    ui->graphicsView->centerOn(personaje->obtenerArea().center().x(), 250);
 
-        if (saltando) {
-            double velocidadVertical = -500 + 1000 * tiempoSalto;
+    // Mantener los contadores visibles
+    QPointF esquinaVista = ui->graphicsView->mapToScene(0, 0);
 
-            if (velocidadVertical < -50) {
-                imagen = imagenSalto[0];
-            }
-            else if (velocidadVertical <= 50) {
-                imagen = imagenSalto[1];
-            }
-            else {
-                imagen = imagenSalto[2];
-            }
-        }
-        else {
-            imagen = imagenSalto[2];
-        }
-
-        if (mirandoIzquierda) {
-            imagen = imagen.transformed(QTransform().scale(-1, 1));
-        }
-
-        po->setPixmap(imagen);
-        estabaCaminando = false;
-        fotograma = 0;
-        tiempoAnimacion = 0;
-    }
-    else if (caminando) {
-        tiempoAnimacion += dt;
-
-        if (tiempoAnimacion >= 0.12 || !estabaCaminando) {
-            if (tiempoAnimacion >= 0.12) {
-                fotograma = (fotograma + 1) % 6;
-            }
-
-            QPixmap imagen = imagenCaminar[fotograma];
-
-            if (mirandoIzquierda) {
-                imagen = imagen.transformed(QTransform().scale(-1, 1));
-            }
-
-            po->setPixmap(imagen);
-            tiempoAnimacion = 0;
-        }
-
-        estabaCaminando = true;
-    }
-    else {
-        QPixmap imagen = imagenReposo;
-
-        if (mirandoIzquierda) {
-            imagen = imagen.transformed(QTransform().scale(-1, 1));
-        }
-
-        po->setPixmap(imagen);
-        estabaCaminando = false;
-        fotograma = 0;
-        tiempoAnimacion = 0;
-    }
+    textoFlores->setPos(esquinaVista.x() + 20, esquinaVista.y() + 15);
+    textoTiempo->setPos(esquinaVista.x() + 710, esquinaVista.y() + 15);
 }
 
 MainWindow::~MainWindow()
 {
+    delete personaje;
+    // Liberar las plataformas
+    for (PlataformaOscilante *plataforma : plataformas) {
+        delete plataforma;
+    }
+    // Liberar la memoria de las flores
+    for (Flor *flor : flores) {
+        delete flor;
+    }
+    delete cabra;
     delete ui;
 }
-
-
 
 
