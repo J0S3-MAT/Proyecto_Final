@@ -28,16 +28,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Crear el escenario
     escena = new QGraphicsScene(this);
-    escena->setSceneRect(0, 0, 2400, 500);
+    escena->setSceneRect(0, 0, 35000, 500);
 
     // Mostrar el escenario en graphicsView
     ui->graphicsView->setScene(escena);
 
     // Color del cielo
-    escena->setBackgroundBrush(QColor(170, 220, 255));
-
-    // Dibujar un suelo provisional
-    escena->addRect(0, 420, 2400, 80, QPen(Qt::NoPen), QBrush(QColor(90, 170, 90)));
+    QPixmap fondo(":/imagenes/imagenes/fondo1.png");
+    escena->setBackgroundBrush(QBrush(fondo.scaled(fondo.width() * 0.3, fondo.height() * 0.3, Qt::KeepAspectRatio, Qt::SmoothTransformation)));
 
 
     //Abro la imagen
@@ -45,28 +43,34 @@ MainWindow::MainWindow(QWidget *parent)
     personaje = new Po(escena);
     // Crear la cabra
     cabra = new Cabra(escena);
+    // Imagenes de la montana
+    for (int i = 0; i < 4; i++) {
+        imagenMontana[i] = QPixmap(QString(":/imagenes/imagenes/montana%1.png").arg(i + 1)).scaledToHeight(350, Qt::SmoothTransformation);
+    }
 
-    // Crear 5 plataformas con parametros aleatorios
-    for (int i = 0; i < 5; i++) {
-        int x = 300 + i * 400 + QRandomGenerator::global()->bounded(-70, 71);
+    // Montana de dumplings animada
+    montana = escena->addPixmap(imagenMontana[0]);
+    montana->setPos(-650, 90);
+
+    // Crear plataformas aleatorias
+    for (int x = 350; x < 34500; x += QRandomGenerator::global()->bounded(350, 551)) {
+        int ancho = QRandomGenerator::global()->bounded(90, 181);
         int y = QRandomGenerator::global()->bounded(325, 351);
         int amplitud = QRandomGenerator::global()->bounded(15, 26);
         double periodo = 2.0 + QRandomGenerator::global()->bounded(0, 16) / 10.0;
 
-        plataformas.push_back(new PlataformaOscilante(escena, x, y, amplitud, periodo));
-    }
+        PlataformaOscilante *plataforma = new PlataformaOscilante(escena, x, y, amplitud, periodo, ancho);
+        plataformas.push_back(plataforma);
 
-    // Crear 15 flores en el suelo
-    for (int x = 150; x <= 2250; x += 150) {
-        int variacion = QRandomGenerator::global()->bounded(-40, 41);
-        flores.push_back(new Flor(escena, x + variacion, 390));
-    }
-
-    // Crear tres flores sobre cada plataforma
-    for (PlataformaOscilante *plataforma : plataformas) {
-        for (int x = 15; x <= 75; x += 30) {
-            flores.push_back(new Flor(escena, x, -30, plataforma->obtenerRectangulo()));
+        // Algunas plataformas tienen una flor
+        if (QRandomGenerator::global()->bounded(100) < 70) {
+            flores.push_back(new Flor(escena, (ancho - 30) / 2, -30, plataforma->obtenerRectangulo()));
         }
+    }
+
+    // Crear flores aleatorias en el suelo
+    for (int x = 160; x < 34500; x += QRandomGenerator::global()->bounded(450, 751)) {
+        flores.push_back(new Flor(escena, x, 390));
     }
 
     // Contador de flores
@@ -192,10 +196,21 @@ void MainWindow::actualizarJuego()
     personaje->mover(dt, izquierda, derecha);
 
     // Movimiento de la cabra
-    cabra->actualizar(dt);
+    cabra->actualizar(dt, personaje->obtenerArea().center().x());
 
     // Actualizar salto, caida y contacto con la plataforma
     personaje->actualizarMovimientoVertical(dt, plataformas);
+
+    // Colision elastica entre Po y la cabra
+    bool tocandoCabra = personaje->obtenerArea().intersects(cabra->obtenerArea());
+
+    if (tocandoCabra && !contactoCabra) {
+        double nuevaVelocidadCabra = personaje->recibirChoque(cabra->obtenerVelocidad(), izquierda, derecha);
+        cabra->recibirChoque(nuevaVelocidadCabra);
+        textoFlores->setPlainText(QString("Flores: %1/30").arg(personaje->obtenerFlores()));
+    }
+
+    contactoCabra = tocandoCabra;
 
     // Recoleccion de flores
     for (Flor *flor : flores) {
@@ -233,6 +248,41 @@ void MainWindow::actualizarJuego()
 
     textoFlores->setPos(esquinaVista.x() + 20, esquinaVista.y() + 15);
     textoTiempo->setPos(esquinaVista.x() + 710, esquinaVista.y() + 15);
+
+    // Movimiento de la montana
+    double distanciaMontana = personaje->obtenerArea().left() - montana->sceneBoundingRect().right();
+
+    double velocidadMontana = 200;
+
+    if (distanciaMontana > 450) {
+        velocidadMontana = 350;
+    }
+
+    montana->moveBy(velocidadMontana * dt, 0);
+
+    // Animacion de la montana
+    tiempoAnimacionMontana += dt;
+
+    if (tiempoAnimacionMontana >= 0.12) {
+        fotogramaMontana = (fotogramaMontana + 1) % 4;
+        montana->setPixmap(imagenMontana[fotogramaMontana]);
+        tiempoAnimacionMontana = 0;
+    }
+
+    // Comprobar si la montana alcanza a Po
+    if (montana->sceneBoundingRect().right() >= personaje->obtenerArea().left()) {
+        temporizador->stop();
+        juegoIniciado = false;
+
+        QGraphicsTextItem *mensaje = escena->addText("¡LA MONTANA TE ALCANZO!", QFont("Arial", 24, QFont::Bold));
+        mensaje->setDefaultTextColor(Qt::darkRed);
+        mensaje->setZValue(10);
+
+        QPointF centro = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->rect().center());
+        mensaje->setPos(centro.x() - mensaje->boundingRect().width() / 2, centro.y() - mensaje->boundingRect().height() / 2);
+
+        return;
+    }
 }
 
 MainWindow::~MainWindow()

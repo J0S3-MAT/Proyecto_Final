@@ -1,5 +1,6 @@
 #include "cabra.h"
 #include <QTransform>
+#include <QRandomGenerator>
 
 Cabra::Cabra(QGraphicsScene *escena)
 {
@@ -12,19 +13,50 @@ Cabra::Cabra(QGraphicsScene *escena)
     // Crear la cabra en el escenario
     imagen = escena->addPixmap(imagenCorrer[0]);
     imagen->setPos(750, 420 - imagen->boundingRect().height());
+    imagen->hide(); //No aparezca automaticamente al comenzar la partida
 }
 
-void Cabra::actualizar(double dt)
+void Cabra::actualizar(double dt, double xPo)
 {
-    // Movimiento hacia la izquierda
-    imagen->moveBy(-velocidad * dt, 0);
 
-    // Regresar al extremo derecho cuando sale del escenario
-    if (imagen->x() + imagen->boundingRect().width() < 0) {
-        imagen->setX(imagen->scene()->sceneRect().right());
+    // Aparicion aleatoria cada 5 segundos
+    tiempoAparicion += dt;
+
+    if (tiempoAparicion >= 5.0) {
+        tiempoAparicion -= 5.0;
+
+        if (!imagen->isVisible() && QRandomGenerator::global()->bounded(100) < 70) {
+            imagen->setX(xPo + 800);
+            imagen->show();
+            velocidad = -160;
+            tiempoChoque = 0;
+        }
     }
 
-    // Animacion de carrera
+    if (!imagen->isVisible()) {
+        return;
+    }
+
+
+    //Movimiento
+    imagen->moveBy(velocidad * dt, 0);
+
+    // Desaparecer cuando la cabra queda atras de Po
+    if (imagen->x() + imagen->boundingRect().width() < xPo - 350) {
+        imagen->hide();
+        return;
+    }
+
+    //Si choca se devuelve
+    if (tiempoChoque > 0) {
+        tiempoChoque -= dt;
+
+        //Si ya paso el tiempo de choque sigue a la izquirda
+        if (tiempoChoque <= 0) {
+            velocidad = -160;
+        }
+    }
+
     tiempoAnimacion += dt;
 
     if (tiempoAnimacion >= 0.12) {
@@ -32,4 +64,24 @@ void Cabra::actualizar(double dt)
         imagen->setPixmap(imagenCorrer[fotograma]);
         tiempoAnimacion = 0;
     }
+}
+
+QRectF Cabra::obtenerArea() const
+    {
+        if (!imagen->isVisible()) {
+            return QRectF();           //Cuando la cabra no está visible, devolvemos un rectángulo vacío
+        }
+
+        return imagen->sceneBoundingRect();
+    }
+
+double Cabra::obtenerVelocidad() const
+{
+    return velocidad;
+}
+
+void Cabra::recibirChoque(double nuevaVelocidad)
+{
+    velocidad = nuevaVelocidad;
+    tiempoChoque = 0.35;
 }

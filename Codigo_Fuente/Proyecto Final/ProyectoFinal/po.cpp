@@ -18,17 +18,38 @@ Po::Po(QGraphicsScene *escena)
     for (int i = 0; i < 3; i++) {
         imagenSalto[i] = QPixmap(QString(":/imagenes/imagenes/po_salto%1.png").arg(i + 1)).scaledToHeight(100, Qt::SmoothTransformation);
     }
+
+    // Imagenes de choque
+    for (int i = 0; i < 4; i++) {
+        imagenChoque[i] = QPixmap(QString(":/imagenes/imagenes/po_choque%1.png").arg(i + 1)).scaledToHeight(100, Qt::SmoothTransformation);
+    }
 }
 
 
 void Po::mover(double dt, bool izquierda, bool derecha)
 {
-    if (izquierda) {
-        imagen->moveBy(-velocidad * dt, 0);
+    if (tiempoChoque > 0) {
+        imagen->moveBy(velocidadChoque * dt, 0);
+        tiempoChoque -= dt;
     }
+    else {
 
-    if (derecha) {
-        imagen->moveBy(velocidad * dt, 0);
+        double velocidadActual = velocidad;
+
+        // Estado Pesado
+        if (tiempoPesado > 0) {
+            velocidadActual = velocidad * 0.4;
+            tiempoPesado -= dt;
+        }
+
+
+        if (izquierda) {
+            imagen->moveBy(-velocidadActual * dt, 0);
+        }
+
+        if (derecha) {
+            imagen->moveBy(velocidadActual * dt, 0);
+        }
     }
 
     // Limites horizontales
@@ -129,8 +150,30 @@ void Po::actualizarAnimacion(double dt, bool izquierda, bool derecha)
         mirandoIzquierda = izquierda;
     }
 
+
+    // Animacion de choque
+    if (tiempoChoque > 0) {
+        int indice = ((0.4 - tiempoChoque) / 0.1);
+
+        if (indice > 3) {
+            indice = 3;
+        }
+
+        QPixmap nuevaImagen = imagenChoque[indice];
+
+        if (mirandoIzquierda) {
+            nuevaImagen = nuevaImagen.transformed(QTransform().scale(-1, 1));
+        }
+
+        imagen->setPixmap(nuevaImagen);
+        estabaCaminando = false;
+        fotograma = 0;
+        tiempoAnimacion = 0;
+    }
+
+
     // Animacion del salto y la caida
-    if (saltando || cayendo) {
+    else if (saltando || cayendo) {
         QPixmap nuevaImagen;
 
         if (saltando) {
@@ -210,4 +253,34 @@ void Po::sumarFlor()
 int Po::obtenerFlores() const
 {
     return flores;
+}
+
+double Po::recibirChoque(double velocidadCabra, bool izquierda, bool derecha)
+{
+    const double masaPo = 80;
+    const double masaCabra = 100;
+
+    double velocidadPo = 0;
+
+    if (izquierda) {
+        velocidadPo -= velocidad;
+    }
+
+    if (derecha) {
+        velocidadPo += velocidad;
+    }
+
+    velocidadChoque = ((masaPo - masaCabra) * velocidadPo + 2 * masaCabra * velocidadCabra) / (masaPo + masaCabra);
+    tiempoChoque = 0.4;
+
+    // Penalizacion por choque
+    flores -= 5;
+
+    if (flores < 0) {
+        flores = 0;
+    }
+
+    tiempoPesado = 3.0;
+
+    return (2 * masaPo * velocidadPo + (masaCabra - masaPo) * velocidadCabra) / (masaPo + masaCabra);
 }

@@ -24,15 +24,21 @@ private:
     QPixmap imagenReposo;
     QPixmap imagenCaminar[6];
     QPixmap imagenSalto[3];
+    QPixmap imagenChoque[4];
 
     // Control de animaciones
     int fotograma = 0;
+    double tiempoPesado = 0;
     double tiempoAnimacion = 0;
     bool estabaCaminando = false;
     bool mirandoIzquierda = false;
 
     //flores
     int flores = 0;
+
+    //Choque
+    double velocidadChoque = 0;
+    double tiempoChoque = 0;
 
 
 public:
@@ -44,6 +50,7 @@ public:
     QRectF obtenerArea() const;
     void sumarFlor();
     int obtenerFlores() const;
+    double recibirChoque(double velocidadCabra, bool izquierda, bool derecha);
 };
 
 

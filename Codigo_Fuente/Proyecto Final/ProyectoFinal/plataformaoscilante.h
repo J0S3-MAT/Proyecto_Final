@@ -13,7 +13,7 @@ private:
     double periodo;
 
 public:
-    PlataformaOscilante(QGraphicsScene *escena, double x, double y, double a, double t);
+    PlataformaOscilante(QGraphicsScene *escena, double x, double y, double a, double t, double ancho);
     void actualizar(double tiempoJuego);
     QGraphicsRectItem *obtenerRectangulo();
 };

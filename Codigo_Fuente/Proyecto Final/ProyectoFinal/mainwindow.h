@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QGraphicsEllipseItem>
 #include <QMainWindow>
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
@@ -51,6 +52,12 @@ private:
     QGraphicsTextItem *textoTiempo = nullptr;
     QTimer *temporizador = nullptr;
     Cabra *cabra = nullptr;
+    bool contactoCabra = false;
+    QGraphicsPixmapItem *montana = nullptr;
+    QPixmap imagenMontana[4];
+    int fotogramaMontana = 0;
+    double tiempoAnimacionMontana = 0;
+
 
     void actualizarJuego();
 };
