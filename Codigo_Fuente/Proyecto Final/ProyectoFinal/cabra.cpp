@@ -12,7 +12,7 @@ Cabra::Cabra(QGraphicsScene *escena)
 
     // Crear la cabra en el escenario
     imagen = escena->addPixmap(imagenCorrer[0]);
-    imagen->setPos(750, 420 - imagen->boundingRect().height());
+    imagen->setPos(750, 520 - imagen->boundingRect().height());
     imagen->hide(); //No aparezca automaticamente al comenzar la partida
 }
 

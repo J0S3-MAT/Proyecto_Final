@@ -7,7 +7,7 @@ Po::Po(QGraphicsScene *escena)
     imagenReposo = QPixmap(":/imagenes/imagenes/po_reposo.png").scaledToHeight(100, Qt::SmoothTransformation);
 
     imagen = escena->addPixmap(imagenReposo);
-    imagen->setPos(100, 320);
+    imagen->setPos(100, 420);
 
     // Imagenes para caminar
     for (int i = 0; i < 6; i++) {
@@ -38,7 +38,7 @@ void Po::mover(double dt, bool izquierda, bool derecha)
 
         // Estado Pesado
         if (tiempoPesado > 0) {
-            velocidadActual = velocidad * 0.4;
+            velocidadActual = velocidad * 0.7;
             tiempoPesado -= dt;
         }
 
@@ -130,8 +130,8 @@ void Po::actualizarMovimientoVertical(double dt, const std::vector<PlataformaOsc
     }
 
     // Aterrizaje en el suelo
-    if ((saltando || cayendo) && imagen->y() + alturaPo >= 420) {
-        imagen->setY(420 - alturaPo);
+    if ((saltando || cayendo) && imagen->y() + alturaPo >= 520) {
+        imagen->setY(520 - alturaPo);
         saltando = false;
         cayendo = false;
         velocidadCaida = 0;

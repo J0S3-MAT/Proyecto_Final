@@ -27,5 +27,14 @@
         <file>imagenes/montana4.png</file>
         <file>imagenes/fondo.png</file>
         <file>imagenes/fondo1.png</file>
+        <file>imagenes/plataforma1.png</file>
+        <file>imagenes/plataforma2.png</file>
+        <file>imagenes/plataforma3.png</file>
+        <file>imagenes/lava1.png</file>
+        <file>imagenes/lava2.png</file>
+        <file>imagenes/lava3.png</file>
+        <file>imagenes/lava4.png</file>
+        <file>imagenes/lava5.png</file>
+        <file>imagenes/fondo2.png</file>
     </qresource>
 </RCC>

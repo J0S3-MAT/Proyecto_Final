@@ -16,6 +16,7 @@
 #include <vector> //para flores
 #include <QTimer> //para el contador
 #include "cabra.h"
+#include <QPushButton>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -34,6 +35,7 @@ public:
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override; //Ajustar la ventana
 
 private:
     Ui::MainWindow *ui;
@@ -57,6 +59,13 @@ private:
     QPixmap imagenMontana[4];
     int fotogramaMontana = 0;
     double tiempoAnimacionMontana = 0;
+    std::vector<QGraphicsRectItem*> trampas;
+    QPixmap imagenLava[5];
+    int fotogramaLava = 0;
+    double tiempoAnimacionLava = 0;
+    QPushButton *botonReiniciar = nullptr;
+    void iniciarNivel();
+    void mostrarDerrota(const QString &texto);
 
 
     void actualizarJuego();

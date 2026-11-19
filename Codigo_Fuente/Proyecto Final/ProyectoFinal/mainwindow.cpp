@@ -15,6 +15,7 @@
 #include <QFont>
 //para plataformas aleatorias
 #include <QRandomGenerator>
+#include <QResizeEvent> //Ajustar la ventana
 
 using namespace std;
 
@@ -23,19 +24,36 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    // Boton para reiniciar el nivel
+    botonReiniciar = new QPushButton("REINICIAR", ui->graphicsView->viewport());
+    botonReiniciar->setGeometry(10, 55, 120, 35);
+    botonReiniciar->setFocusPolicy(Qt::NoFocus);
+    botonReiniciar->hide();
+
+    connect(botonReiniciar, &QPushButton::clicked, this, [this]() {
+        MainWindow *nueva = new MainWindow();
+        nueva->setAttribute(Qt::WA_DeleteOnClose);
+        nueva->setGeometry(geometry());
+        nueva->show();
+        nueva->iniciarNivel();
+        close();
+    });
+
     ui->graphicsView->setFocusPolicy(Qt::NoFocus);
     setFocusPolicy(Qt::StrongFocus);
 
     // Crear el escenario
     escena = new QGraphicsScene(this);
-    escena->setSceneRect(0, 0, 35000, 500);
+    escena->setSceneRect(0, 70, 35000, 600);
 
     // Mostrar el escenario en graphicsView
     ui->graphicsView->setScene(escena);
 
+
     // Color del cielo
-    QPixmap fondo(":/imagenes/imagenes/fondo1.png");
-    escena->setBackgroundBrush(QBrush(fondo.scaled(fondo.width() * 0.3, fondo.height() * 0.3, Qt::KeepAspectRatio, Qt::SmoothTransformation)));
+    QPixmap fondo(":/imagenes/imagenes/fondo2.png");
+    escena->setBackgroundBrush(QBrush(fondo.scaled(fondo.width() * 0.65, fondo.height() * 0.65, Qt::KeepAspectRatio, Qt::SmoothTransformation)));
 
 
     //Abro la imagen
@@ -50,27 +68,61 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Montana de dumplings animada
     montana = escena->addPixmap(imagenMontana[0]);
-    montana->setPos(-650, 90);
+    montana->setPos(-650, 190);
+
+    // Cargar animacion de lava
+    for (int i = 0; i < 5; i++) {
+        QPixmap sprite(QString(":/imagenes/imagenes/lava%1.png").arg(i + 1));
+        imagenLava[i] = sprite.scaledToHeight(60, Qt::FastTransformation);
+    }
 
     // Crear plataformas aleatorias
-    for (int x = 350; x < 34500; x += QRandomGenerator::global()->bounded(350, 551)) {
-        int ancho = QRandomGenerator::global()->bounded(90, 181);
-        int y = QRandomGenerator::global()->bounded(325, 351);
+    for (int x = 350; x < 35000;) {
+
+        // Probabilidad de generar una escalera
+        int inicioTrampa = x;
+        if (QRandomGenerator::global()->bounded(100) < 50) {
+
+            for (int i = 0; i < 3; i++) {
+                int yEscalon = 400 - i * 70;
+
+                PlataformaOscilante *escalon = new PlataformaOscilante(escena, x, yEscalon, 0, 3.0, 1);
+                plataformas.push_back(escalon);
+
+                x += escalon->obtenerRectangulo()->rect().width() + 80;
+            }
+
+            int anchoTrampa = x - inicioTrampa - 40;
+
+            QGraphicsRectItem *trampa = escena->addRect(0, 0, anchoTrampa, 60, QPen(Qt::NoPen), QBrush(imagenLava[0]));
+            trampa->setPos(inicioTrampa, 520);
+            trampas.push_back(trampa);
+
+            x += QRandomGenerator::global()->bounded(250, 401);
+            continue;
+        }
+
+        int tipo = QRandomGenerator::global()->bounded(1, 4);
+        int y = QRandomGenerator::global()->bounded(425, 451);
         int amplitud = QRandomGenerator::global()->bounded(15, 26);
         double periodo = 2.0 + QRandomGenerator::global()->bounded(0, 16) / 10.0;
 
-        PlataformaOscilante *plataforma = new PlataformaOscilante(escena, x, y, amplitud, periodo, ancho);
+        PlataformaOscilante *plataforma = new PlataformaOscilante(escena, x, y, amplitud, periodo, tipo);
         plataformas.push_back(plataforma);
 
         // Algunas plataformas tienen una flor
         if (QRandomGenerator::global()->bounded(100) < 70) {
+            double ancho = plataforma->obtenerRectangulo()->rect().width();
             flores.push_back(new Flor(escena, (ancho - 30) / 2, -30, plataforma->obtenerRectangulo()));
         }
+
+        int anchoPlataforma = plataforma->obtenerRectangulo()->rect().width();
+        x += anchoPlataforma + QRandomGenerator::global()->bounded(250, 400);
     }
 
     // Crear flores aleatorias en el suelo
     for (int x = 160; x < 34500; x += QRandomGenerator::global()->bounded(450, 751)) {
-        flores.push_back(new Flor(escena, x, 390));
+        flores.push_back(new Flor(escena, x, 490));
     }
 
     // Contador de flores
@@ -79,7 +131,7 @@ MainWindow::MainWindow(QWidget *parent)
     textoFlores->setPos(20, 15);
 
     // Contador de tiempo
-    textoTiempo = escena->addText("Tiempo: 90 s", QFont("Arial", 16, QFont::Bold));
+    textoTiempo = escena->addText("Tiempo: 60 s", QFont("Arial", 16, QFont::Bold));
     textoTiempo->setDefaultTextColor(Qt::darkGreen);
     textoTiempo->setPos(710, 15);
 
@@ -106,15 +158,16 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Iniciar el juego al presionar el boton
     connect(botonJugar, &QPushButton::clicked, this, [this]() {
-        ui->graphicsView->setScene(escena);
-        juegoIniciado = true;
-        reloj.start();
-        temporizador->start(16);
-        setFocus();
+        iniciarNivel();
     });
 
     // Mostrar el menu al abrir el videojuego
     ui->graphicsView->setScene(escenaMenu);
+
+    //Mostrar bien dimensiones
+    QTimer::singleShot(0, this, [this]() {
+        ui->graphicsView->fitInView(escenaMenu->sceneRect(), Qt::KeepAspectRatio);
+    });
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
@@ -160,6 +213,18 @@ void MainWindow::actualizarJuego()
 {
     double dt = reloj.restart() / 1000.0;
 
+    // Animacion de lava
+    tiempoAnimacionLava += dt;
+
+    if (tiempoAnimacionLava >= 0.12) {
+        tiempoAnimacionLava -= 0.12;
+        fotogramaLava = (fotogramaLava + 1) % 5;
+
+        for (QGraphicsRectItem *trampa : trampas) {
+            trampa->setBrush(QBrush(imagenLava[fotogramaLava]));
+        }
+    }
+
     tiempoJuego += dt;
 
     // Actualizar el tiempo restante
@@ -174,16 +239,7 @@ void MainWindow::actualizarJuego()
 
     // Verificar si se termino el tiempo
     if (tiempoRestante <= 0) {
-        temporizador->stop();
-        juegoIniciado = false;
-
-        if (personaje->obtenerFlores() < 30) {
-            QGraphicsTextItem *mensaje = escena->addText("TIEMPO AGOTADO\nNo reuniste las 30 flores", QFont("Arial", 22, QFont::Bold));
-            mensaje->setDefaultTextColor(Qt::darkRed);
-            mensaje->setPos(220, 190);
-            mensaje->setZValue(10);
-        }
-
+        mostrarDerrota("TIEMPO AGOTADO\nNo reuniste las 30 flores");
         return;
     }
 
@@ -194,6 +250,18 @@ void MainWindow::actualizarJuego()
 
     // Movimiento horizontal de Po
     personaje->mover(dt, izquierda, derecha);
+
+    // Colision con la lava
+    QRectF areaPo = personaje->obtenerArea();
+
+    for (QGraphicsRectItem *trampa : trampas) {
+        QRectF areaTrampa = trampa->sceneBoundingRect();
+
+        if (areaPo.right() > areaTrampa.left() && areaPo.left() < areaTrampa.right() && areaPo.bottom() >= 520) {
+            mostrarDerrota("¡CAISTE EN LA LAVA!");
+            return;
+        }
+    }
 
     // Movimiento de la cabra
     cabra->actualizar(dt, personaje->obtenerArea().center().x());
@@ -241,7 +309,7 @@ void MainWindow::actualizarJuego()
     personaje->actualizarAnimacion(dt, izquierda, derecha);
 
     // Camara horizontal
-    ui->graphicsView->centerOn(personaje->obtenerArea().center().x(), 250);
+    ui->graphicsView->centerOn(personaje->obtenerArea().center().x(), 300);
 
     // Mantener los contadores visibles
     QPointF esquinaVista = ui->graphicsView->mapToScene(0, 0);
@@ -271,16 +339,7 @@ void MainWindow::actualizarJuego()
 
     // Comprobar si la montana alcanza a Po
     if (montana->sceneBoundingRect().right() >= personaje->obtenerArea().left()) {
-        temporizador->stop();
-        juegoIniciado = false;
-
-        QGraphicsTextItem *mensaje = escena->addText("¡LA MONTANA TE ALCANZO!", QFont("Arial", 24, QFont::Bold));
-        mensaje->setDefaultTextColor(Qt::darkRed);
-        mensaje->setZValue(10);
-
-        QPointF centro = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->rect().center());
-        mensaje->setPos(centro.x() - mensaje->boundingRect().width() / 2, centro.y() - mensaje->boundingRect().height() / 2);
-
+        mostrarDerrota("¡LA MONTAÑA TE ALCANZÓ!");
         return;
     }
 }
@@ -300,4 +359,53 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::iniciarNivel()
+{
+    ui->graphicsView->setScene(escena);
+    ui->graphicsView->fitInView(QRectF(0, 0, 900, 500), Qt::KeepAspectRatio); //ajustar la ventana
+    ui->graphicsView->centerOn(personaje->obtenerArea().center().x(), 300);
+    ui->graphicsView->setAlignment(Qt::AlignHCenter | Qt::AlignBottom); //el escenario se alinee con la parte inferior de la ventana
 
+    juegoIniciado = true;
+    izquierda = false;
+    derecha = false;
+
+    reloj.start();
+    temporizador->start(16);
+    setFocus();
+}
+
+void MainWindow::mostrarDerrota(const QString &texto)
+{
+    temporizador->stop();
+    juegoIniciado = false;
+
+    // Mostrar mensaje en el centro de la pantalla
+    QGraphicsTextItem *mensaje = escena->addText(texto, QFont("Arial", 24, QFont::Bold));
+    mensaje->setDefaultTextColor(Qt::darkRed);
+    mensaje->setZValue(10);
+
+    QPointF centro = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->rect().center());
+    mensaje->setPos(centro.x() - mensaje->boundingRect().width() / 2, centro.y() - 60);
+
+    // Mostrar boton debajo del mensaje
+    botonReiniciar->move((ui->graphicsView->viewport()->width() - botonReiniciar->width()) / 2, (ui->graphicsView->viewport()->height() - botonReiniciar->height()) / 2 + 65);
+    botonReiniciar->show();
+    botonReiniciar->raise();
+}
+
+//ajustar la ventana
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+
+    if (!ui->graphicsView->scene()) {
+        return;
+    }
+
+    ui->graphicsView->fitInView(QRectF(0, 0, 900, 500), Qt::KeepAspectRatio);
+
+    if (ui->graphicsView->scene() == escena) {
+        ui->graphicsView->centerOn(personaje->obtenerArea().center().x(), 250);
+    }
+}
