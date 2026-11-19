@@ -4,13 +4,13 @@
 #include <QPen>
 #include <cmath>
 
-PlataformaOscilante::PlataformaOscilante(QGraphicsScene *escena, double x, double y, double a, double t)
+PlataformaOscilante::PlataformaOscilante(QGraphicsScene *escena, double x, double y, double a, double t, double ancho)
 {
     centroY = y;
     amplitud = a;
     periodo = t;
 
-    rectangulo = escena->addRect(0, 0, 120, 15, QPen(Qt::NoPen), QBrush(QColor(140, 90, 50)));
+    rectangulo = escena->addRect(0, 0, ancho, 15, QPen(Qt::NoPen), QBrush(QColor(140, 90, 50)));
     rectangulo->setPos(x, y);
 }
 

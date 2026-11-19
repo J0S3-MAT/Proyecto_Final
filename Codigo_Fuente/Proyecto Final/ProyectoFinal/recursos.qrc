@@ -17,5 +17,15 @@
         <file>imagenes/cabra_correr4.png</file>
         <file>imagenes/cabra_correr5.png</file>
         <file>imagenes/cabra_correr6.png</file>
+        <file>imagenes/po_choque1.png</file>
+        <file>imagenes/po_choque2.png</file>
+        <file>imagenes/po_choque3.png</file>
+        <file>imagenes/po_choque4.png</file>
+        <file>imagenes/montana1.png</file>
+        <file>imagenes/montana2.png</file>
+        <file>imagenes/montana3.png</file>
+        <file>imagenes/montana4.png</file>
+        <file>imagenes/fondo.png</file>
+        <file>imagenes/fondo1.png</file>
     </qresource>
 </RCC>
