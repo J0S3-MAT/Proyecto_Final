@@ -1,4 +1,4 @@
-QT += widgets
+QT += widgets multimedia
 
 CONFIG += c++17
 
@@ -8,6 +8,7 @@ CONFIG += c++17
 
 SOURCES += \
     cabra.cpp \
+    dumpling.cpp \
     flor.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -16,6 +17,7 @@ SOURCES += \
 
 HEADERS += \
     cabra.h \
+    dumpling.h \
     flor.h \
     mainwindow.h \
     plataformaoscilante.h \

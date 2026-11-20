@@ -36,5 +36,14 @@
         <file>imagenes/lava4.png</file>
         <file>imagenes/lava5.png</file>
         <file>imagenes/fondo2.png</file>
+        <file>imagenes/dumpling_bueno.png</file>
+        <file>imagenes/dumpling_malo.png</file>
+        <file>imagenes/portada.png</file>
+        <file>imagenes/cabra_quemando1.png</file>
+        <file>imagenes/cabra_quemando2.png</file>
+        <file>imagenes/cabra_quemando3.png</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>audios/musica_nivel1.mp3</file>
     </qresource>
 </RCC>

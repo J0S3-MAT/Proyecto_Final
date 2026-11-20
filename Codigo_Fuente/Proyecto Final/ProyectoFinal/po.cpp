@@ -28,6 +28,11 @@ Po::Po(QGraphicsScene *escena)
 
 void Po::mover(double dt, bool izquierda, bool derecha)
 {
+    // Actualizar duracion de la velocidad adicional
+    if (tiempoRapido > 0) {
+        tiempoRapido -= dt;
+    }
+
     if (tiempoChoque > 0) {
         imagen->moveBy(velocidadChoque * dt, 0);
         tiempoChoque -= dt;
@@ -42,6 +47,10 @@ void Po::mover(double dt, bool izquierda, bool derecha)
             tiempoPesado -= dt;
         }
 
+        // Velocidad adicional del dumpling bueno
+        if (tiempoRapido > 0) {
+            velocidadActual *= 1.10;
+        }
 
         if (izquierda) {
             imagen->moveBy(-velocidadActual * dt, 0);
@@ -248,6 +257,25 @@ QRectF Po::obtenerArea() const
 void Po::sumarFlor()
 {
     flores++;
+}
+
+void Po::sumarFlores(int cantidad)
+{
+    flores += cantidad;
+}
+
+void Po::quitarFlores(int cantidad)
+{
+    flores -= cantidad;
+
+    if (flores < 0) {
+        flores = 0;
+    }
+}
+
+void Po::activarVelocidad()
+{
+    tiempoRapido = 4.0;
 }
 
 int Po::obtenerFlores() const

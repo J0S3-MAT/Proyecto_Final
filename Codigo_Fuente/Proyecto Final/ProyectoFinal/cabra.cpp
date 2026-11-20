@@ -10,14 +10,48 @@ Cabra::Cabra(QGraphicsScene *escena)
         imagenCorrer[i] = sprite.scaledToHeight(80, Qt::SmoothTransformation).transformed(QTransform().scale(-1, 1));
     }
 
+    // Cargar los tres sprites de la cabra quemandose
+    for (int i = 0; i < 3; i++) {
+        QPixmap sprite(QString(":/imagenes/imagenes/cabra_quemando%1.png").arg(i + 1));
+
+        imagenQuemando[i] = sprite.scaledToHeight(80, Qt::SmoothTransformation)
+                                .transformed(QTransform().scale(-1, 1));
+    }
+
     // Crear la cabra en el escenario
     imagen = escena->addPixmap(imagenCorrer[0]);
     imagen->setPos(750, 520 - imagen->boundingRect().height());
     imagen->hide(); //No aparezca automaticamente al comenzar la partida
 }
 
-void Cabra::actualizar(double dt, double xPo)
+void Cabra::actualizar(double dt, double xPo, const std::vector<QGraphicsRectItem*> &trampas)
 {
+
+    // Si la cabra esta quemandose, mostrar la animacion
+    if (quemando) {
+        tiempoQuemando += dt;
+
+        if (tiempoQuemando >= 0.18) {
+            tiempoQuemando -= 0.18;
+            fotogramaQuemando++;
+
+            if (fotogramaQuemando < 3) {
+                imagen->setPixmap(imagenQuemando[fotogramaQuemando]);
+            } else {
+                // Termino la animacion: desaparecer
+                quemando = false;
+                imagen->hide();
+
+                // Preparar la proxima aparicion
+                imagen->setPixmap(imagenCorrer[0]);
+                fotograma = 0;
+                tiempoAnimacion = 0;
+                tiempoAparicion = 0;
+            }
+        }
+
+        return;
+    }
 
     // Aparicion aleatoria cada 5 segundos
     tiempoAparicion += dt;
@@ -28,7 +62,7 @@ void Cabra::actualizar(double dt, double xPo)
         if (!imagen->isVisible() && QRandomGenerator::global()->bounded(100) < 70) {
             imagen->setX(xPo + 800);
             imagen->show();
-            velocidad = -160;
+            velocidad = velocidadBase;
             tiempoChoque = 0;
         }
     }
@@ -40,6 +74,31 @@ void Cabra::actualizar(double dt, double xPo)
 
     //Movimiento
     imagen->moveBy(velocidad * dt, 0);
+
+    // Comprobar si la cabra toca alguna trampa de lava
+    QRectF areaCabra = imagen->sceneBoundingRect();
+
+    for (QGraphicsRectItem *trampa : trampas) {
+        QRectF areaLava = trampa->sceneBoundingRect();
+
+        bool coincideHorizontalmente =
+            areaCabra.right() > areaLava.left() &&
+            areaCabra.left() < areaLava.right();
+
+        bool tocaAlturaLava =
+            areaCabra.bottom() >= areaLava.top() &&
+            areaCabra.top() < areaLava.bottom();
+
+        if (coincideHorizontalmente && tocaAlturaLava) {
+            // Comenzar la animacion de quemadura
+            quemando = true;
+            fotogramaQuemando = 0;
+            tiempoQuemando = 0;
+            imagen->setPixmap(imagenQuemando[0]);
+            return;
+        }
+    }
+
 
     // Desaparecer cuando la cabra queda atras de Po
     if (imagen->x() + imagen->boundingRect().width() < xPo - 350) {
@@ -53,7 +112,7 @@ void Cabra::actualizar(double dt, double xPo)
 
         //Si ya paso el tiempo de choque sigue a la izquirda
         if (tiempoChoque <= 0) {
-            velocidad = -160;
+            velocidad = velocidadBase;
         }
     }
 
@@ -68,7 +127,7 @@ void Cabra::actualizar(double dt, double xPo)
 
 QRectF Cabra::obtenerArea() const
     {
-        if (!imagen->isVisible()) {
+        if (!imagen->isVisible() || quemando) {
             return QRectF();           //Cuando la cabra no está visible, devolvemos un rectángulo vacío
         }
 
@@ -84,4 +143,15 @@ void Cabra::recibirChoque(double nuevaVelocidad)
 {
     velocidad = nuevaVelocidad;
     tiempoChoque = 0.35;
+}
+
+void Cabra::configurarDificultad(bool dificil)
+{
+    if (dificil) {
+        velocidadBase = -175;
+    } else {
+        velocidadBase = -160;
+    }
+
+    velocidad = velocidadBase;
 }
