@@ -17,6 +17,9 @@
 #include <QTimer> //para el contador
 #include "cabra.h"
 #include <QPushButton>
+#include <QMediaPlayer>
+#include <QAudioOutput>
+#include "dumpling.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -42,6 +45,7 @@ private:
     QGraphicsScene *escena;
     QGraphicsScene *escenaMenu;
     bool juegoIniciado = false;
+    bool modoDificil = false;
     Po *personaje = nullptr;
     bool izquierda = false;
     bool derecha = false;
@@ -50,6 +54,7 @@ private:
     double tiempoJuego = 0;
     double tiempoRestante = 60.0;
     std::vector<Flor*> flores;
+    std::vector<Dumpling*> dumplings;
     QGraphicsTextItem *textoFlores = nullptr;
     QGraphicsTextItem *textoTiempo = nullptr;
     QTimer *temporizador = nullptr;
@@ -64,8 +69,11 @@ private:
     int fotogramaLava = 0;
     double tiempoAnimacionLava = 0;
     QPushButton *botonReiniciar = nullptr;
+    QPushButton *botonVolverMenu = nullptr;
     void iniciarNivel();
     void mostrarDerrota(const QString &texto);
+    QMediaPlayer *musicaNivel1;
+    QAudioOutput *salidaAudio;
 
 
     void actualizarJuego();

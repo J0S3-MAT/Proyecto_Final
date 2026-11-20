@@ -16,6 +16,8 @@
 //para plataformas aleatorias
 #include <QRandomGenerator>
 #include <QResizeEvent> //Ajustar la ventana
+#include <QUrl>
+#include <QFile>
 
 using namespace std;
 
@@ -24,21 +26,59 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    // Preparar la musica del primer nivel
+    musicaNivel1 = new QMediaPlayer(this);
+    salidaAudio = new QAudioOutput(this);
+
+    musicaNivel1->setAudioOutput(salidaAudio);
+    salidaAudio->setVolume(0.25);
+
+    // Comprobar si Qt encuentra el archivo
+    qDebug() << "Existe la musica:"
+             << QFile::exists(":/audios/audios/musica_nivel1.mp3");
+
+    // Mostrar errores de reproduccion
+    connect(musicaNivel1, &QMediaPlayer::errorOccurred, this,
+            [](QMediaPlayer::Error, const QString &mensaje) {
+                qDebug() << "Error de musica:" << mensaje;
+            });
+
+    musicaNivel1->setSource(QUrl("qrc:/audios/musica_nivel1.mp3"));
+    musicaNivel1->setLoops(QMediaPlayer::Infinite);
+
 
     // Boton para reiniciar el nivel
     botonReiniciar = new QPushButton("REINICIAR", ui->graphicsView->viewport());
-    botonReiniciar->setGeometry(10, 55, 120, 35);
+    botonReiniciar->setFixedSize(150, 40);
     botonReiniciar->setFocusPolicy(Qt::NoFocus);
     botonReiniciar->hide();
 
+    // Boton para volver al menu
+    botonVolverMenu = new QPushButton("VOLVER AL MENU", ui->graphicsView->viewport());
+    botonVolverMenu->setFixedSize(150, 40);
+    botonVolverMenu->setFocusPolicy(Qt::NoFocus);
+    botonVolverMenu->hide();
+
+    // Reiniciar conservando la dificultad
     connect(botonReiniciar, &QPushButton::clicked, this, [this]() {
         MainWindow *nueva = new MainWindow();
         nueva->setAttribute(Qt::WA_DeleteOnClose);
         nueva->setGeometry(geometry());
+        nueva->modoDificil = modoDificil;
         nueva->show();
         nueva->iniciarNivel();
         close();
     });
+
+    // Volver al menu principal
+    connect(botonVolverMenu, &QPushButton::clicked, this, [this]() {
+        MainWindow *nueva = new MainWindow();
+        nueva->setAttribute(Qt::WA_DeleteOnClose);
+        nueva->setGeometry(geometry());
+        nueva->show();
+        close();
+    });
+
 
     ui->graphicsView->setFocusPolicy(Qt::NoFocus);
     setFocusPolicy(Qt::StrongFocus);
@@ -76,54 +116,6 @@ MainWindow::MainWindow(QWidget *parent)
         imagenLava[i] = sprite.scaledToHeight(60, Qt::FastTransformation);
     }
 
-    // Crear plataformas aleatorias
-    for (int x = 350; x < 35000;) {
-
-        // Probabilidad de generar una escalera
-        int inicioTrampa = x;
-        if (QRandomGenerator::global()->bounded(100) < 50) {
-
-            for (int i = 0; i < 3; i++) {
-                int yEscalon = 400 - i * 70;
-
-                PlataformaOscilante *escalon = new PlataformaOscilante(escena, x, yEscalon, 0, 3.0, 1);
-                plataformas.push_back(escalon);
-
-                x += escalon->obtenerRectangulo()->rect().width() + 80;
-            }
-
-            int anchoTrampa = x - inicioTrampa - 40;
-
-            QGraphicsRectItem *trampa = escena->addRect(0, 0, anchoTrampa, 60, QPen(Qt::NoPen), QBrush(imagenLava[0]));
-            trampa->setPos(inicioTrampa, 520);
-            trampas.push_back(trampa);
-
-            x += QRandomGenerator::global()->bounded(250, 401);
-            continue;
-        }
-
-        int tipo = QRandomGenerator::global()->bounded(1, 4);
-        int y = QRandomGenerator::global()->bounded(425, 451);
-        int amplitud = QRandomGenerator::global()->bounded(15, 26);
-        double periodo = 2.0 + QRandomGenerator::global()->bounded(0, 16) / 10.0;
-
-        PlataformaOscilante *plataforma = new PlataformaOscilante(escena, x, y, amplitud, periodo, tipo);
-        plataformas.push_back(plataforma);
-
-        // Algunas plataformas tienen una flor
-        if (QRandomGenerator::global()->bounded(100) < 70) {
-            double ancho = plataforma->obtenerRectangulo()->rect().width();
-            flores.push_back(new Flor(escena, (ancho - 30) / 2, -30, plataforma->obtenerRectangulo()));
-        }
-
-        int anchoPlataforma = plataforma->obtenerRectangulo()->rect().width();
-        x += anchoPlataforma + QRandomGenerator::global()->bounded(250, 400);
-    }
-
-    // Crear flores aleatorias en el suelo
-    for (int x = 160; x < 34500; x += QRandomGenerator::global()->bounded(450, 751)) {
-        flores.push_back(new Flor(escena, x, 490));
-    }
 
     // Contador de flores
     textoFlores = escena->addText("Flores: 0/30", QFont("Arial", 16, QFont::Bold));
@@ -142,24 +134,74 @@ MainWindow::MainWindow(QWidget *parent)
     // Crear la escena del menu
     escenaMenu = new QGraphicsScene(this);
     escenaMenu->setSceneRect(0, 0, 900, 500);
-    escenaMenu->setBackgroundBrush(QColor(170, 220, 255));
+
+    // Colocar la portada como fondo del menu
+    QPixmap portada(":/imagenes/imagenes/portada.png");
+
+    QGraphicsPixmapItem *fondoPortada = escenaMenu->addPixmap(
+        portada.scaled(900, 500, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+        );
+
+    fondoPortada->setPos(0, 0);
+    fondoPortada->setZValue(-1);
 
     // Titulo del videojuego
-    QGraphicsTextItem *titulo = escenaMenu->addText("PO SILLETERO", QFont("Arial", 36, QFont::Bold));
+    QGraphicsTextItem *titulo = escenaMenu->addText("KUNG FU PAISA", QFont("Arial", 36, QFont::Bold));
     titulo->setDefaultTextColor(QColor(30, 80, 45));
-    titulo->setPos(270, 145);
+    titulo->setPos((900 - titulo->boundingRect().width()) / 2, 75);
 
-    // Boton para iniciar el juego
-    QPushButton *botonJugar = new QPushButton("JUGAR");
-    botonJugar->setFixedSize(180, 55);
+    // Historia del juego
+    QGraphicsTextItem *descripcion = escenaMenu->addText(
+        "Ayuda a Po a recolectar las flores para su silleta\n"
+        "y llevarlas a la ciudad de Medellin.\n"
+        "Para lograrlo, debera superar diferentes desafios.\n"
+        "¡Elige la dificultad de tu aventura!",
+        QFont("Arial", 15));
 
-    QGraphicsProxyWidget *botonEscena = escenaMenu->addWidget(botonJugar);
-    botonEscena->setPos(360, 260);
+    descripcion->setDefaultTextColor(QColor(40, 60, 50));
+    descripcion->setPos(340, 175);
 
-    // Iniciar el juego al presionar el boton
-    connect(botonJugar, &QPushButton::clicked, this, [this]() {
+    // Botones de dificultad
+    QPushButton *botonFacil = new QPushButton("FACIL");
+    QPushButton *botonDificil = new QPushButton("DIFICIL");
+
+    botonFacil->setFixedSize(180, 55);
+    botonDificil->setFixedSize(180, 55);
+    QString estiloBotones =
+        "QPushButton {"
+        "background-color: #2E703C;"
+        "color: white;"
+        "border: 2px solid #D5B66C;"
+        "border-radius: 12px;"
+        "font-size: 16px;"
+        "font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        "background-color: #439653;"
+        "}";
+
+    botonFacil->setStyleSheet(estiloBotones);
+    botonDificil->setStyleSheet(estiloBotones);
+
+    // Agregar los botones al menu
+    QGraphicsProxyWidget *botonEscenaFacil = escenaMenu->addWidget(botonFacil);
+    QGraphicsProxyWidget *botonEscenaDificil = escenaMenu->addWidget(botonDificil);
+
+    botonEscenaFacil->setPos(250, 350);
+    botonEscenaDificil->setPos(470, 350);
+
+    // Iniciar el modo facil
+    connect(botonFacil, &QPushButton::clicked, this, [this]() {
+        modoDificil = false;
         iniciarNivel();
     });
+
+    // Iniciar el modo dificil
+    connect(botonDificil, &QPushButton::clicked, this, [this]() {
+        modoDificil = true;
+        iniciarNivel();
+    });
+
 
     // Mostrar el menu al abrir el videojuego
     ui->graphicsView->setScene(escenaMenu);
@@ -263,8 +305,8 @@ void MainWindow::actualizarJuego()
         }
     }
 
-    // Movimiento de la cabra
-    cabra->actualizar(dt, personaje->obtenerArea().center().x());
+    // Movimiento de la cabra y contacto con la lava
+    cabra->actualizar(dt, personaje->obtenerArea().center().x(), trampas);
 
     // Actualizar salto, caida y contacto con la plataforma
     personaje->actualizarMovimientoVertical(dt, plataformas);
@@ -288,9 +330,30 @@ void MainWindow::actualizarJuego()
         }
     }
 
+    // Recoleccion de dumplings
+    for (Dumpling *dumpling : dumplings) {
+
+        if (dumpling->recolectarSiToca(personaje->obtenerArea())) {
+
+            if (dumpling->esBueno()) {
+                // Dumpling bueno: dos flores y mas velocidad
+                personaje->sumarFlores(2);
+                personaje->activarVelocidad();
+            }
+            else {
+                // Dumpling malo: quitar dos flores
+                personaje->quitarFlores(2);
+            }
+
+            // Actualizar el contador
+            textoFlores->setPlainText(QString("Flores: %1/30").arg(personaje->obtenerFlores()));
+        }
+    }
+
     // Verificar si Po completo el primer nivel
     if (personaje->obtenerFlores() >= 30) {
         temporizador->stop();
+        musicaNivel1->stop();
         juegoIniciado = false;
 
         QGraphicsTextItem *mensaje = escena->addText("¡NIVEL 1 COMPLETADO!", QFont("Arial", 24, QFont::Bold));
@@ -355,29 +418,124 @@ MainWindow::~MainWindow()
     for (Flor *flor : flores) {
         delete flor;
     }
+    // Liberar los objetos dumpling
+    for (Dumpling *dumpling : dumplings) {
+        delete dumpling;
+    }
+
     delete cabra;
     delete ui;
 }
 
+
 void MainWindow::iniciarNivel()
 {
+    // Crear plataformas aleatorias
+    for (int x = 350; x < 35000;) {
+
+        int inicioTrampa = x;
+
+        // Crear lava y escaleras solamente en modo dificil
+        if (modoDificil && QRandomGenerator::global()->bounded(100) < 50) {
+
+            for (int i = 0; i < 3; i++) {
+                int yEscalon = 400 - i * 70;
+
+                PlataformaOscilante *escalon = new PlataformaOscilante(escena, x, yEscalon, 0, 3.0, 1);
+                plataformas.push_back(escalon);
+
+                x += escalon->obtenerRectangulo()->rect().width() + 80;
+            }
+
+            int anchoTrampa = x - inicioTrampa - 40;
+
+            QGraphicsRectItem *trampa = escena->addRect(0, 0, anchoTrampa, 60, QPen(Qt::NoPen), QBrush(imagenLava[0]));
+            trampa->setPos(inicioTrampa, 520);
+            trampas.push_back(trampa);
+
+            x += QRandomGenerator::global()->bounded(250, 401);
+            continue;
+        }
+
+        // Plataformas normales para ambas dificultades
+        int tipo = QRandomGenerator::global()->bounded(1, 4);
+        int y = QRandomGenerator::global()->bounded(425, 451);
+        int amplitud = QRandomGenerator::global()->bounded(15, 26);
+        double periodo = 2.0 + QRandomGenerator::global()->bounded(0, 16) / 10.0;
+
+        PlataformaOscilante *plataforma = new PlataformaOscilante(escena, x, y, amplitud, periodo, tipo);
+        plataformas.push_back(plataforma);
+
+        // Algunas plataformas tienen una flor
+        if (QRandomGenerator::global()->bounded(100) < 70) {
+            double ancho = plataforma->obtenerRectangulo()->rect().width();
+            flores.push_back(new Flor(escena, (ancho - 30) / 2, -30, plataforma->obtenerRectangulo()));
+        }
+
+        int anchoPlataforma = plataforma->obtenerRectangulo()->rect().width();
+        x += anchoPlataforma + QRandomGenerator::global()->bounded(250, 400);
+    }
+
+    // Crear flores aleatorias segun la dificultad
+    int distanciaMinima = modoDificil ? 320 : 450;
+    int distanciaMaxima = modoDificil ? 551 : 751;
+
+    for (int x = 240; x < 34500; x += QRandomGenerator::global()->bounded(distanciaMinima, distanciaMaxima)) {
+        flores.push_back(new Flor(escena, x, 490));
+    }
+
+
+    // Crear dumplings solamente en modo dificil
+    if (modoDificil) {
+
+        for (int x = 800; x < 34000; x += QRandomGenerator::global()->bounded(650, 951)) {
+
+            // Evitar dumplings encima de la lava
+            bool sobreLava = false;
+
+            for (QGraphicsRectItem *trampa : trampas) {
+                QRectF areaLava = trampa->sceneBoundingRect();
+
+                if (x + 42 > areaLava.left() && x < areaLava.right()) {
+                    sobreLava = true;
+                    break;
+                }
+            }
+
+            if (!sobreLava) {
+
+                // 50% buenos y 50% malos
+                bool bueno = QRandomGenerator::global()->bounded(2) == 0;
+
+                dumplings.push_back(new Dumpling(escena, x, 478, bueno));
+            }
+        }
+    }
+
+
+    // Iniciar el nivel
     ui->graphicsView->setScene(escena);
-    ui->graphicsView->fitInView(QRectF(0, 0, 900, 500), Qt::KeepAspectRatio); //ajustar la ventana
+    ui->graphicsView->fitInView(QRectF(0, 0, 900, 500), Qt::KeepAspectRatio);
     ui->graphicsView->centerOn(personaje->obtenerArea().center().x(), 300);
-    ui->graphicsView->setAlignment(Qt::AlignHCenter | Qt::AlignBottom); //el escenario se alinee con la parte inferior de la ventana
+    ui->graphicsView->setAlignment(Qt::AlignHCenter | Qt::AlignBottom);
 
     juegoIniciado = true;
     izquierda = false;
     derecha = false;
 
+    // Configurar la velocidad de la cabra segun la dificultad
+    cabra->configurarDificultad(modoDificil);
+
     reloj.start();
     temporizador->start(16);
+    musicaNivel1->play();
     setFocus();
 }
 
 void MainWindow::mostrarDerrota(const QString &texto)
 {
     temporizador->stop();
+    musicaNivel1->stop();
     juegoIniciado = false;
 
     // Mostrar mensaje en el centro de la pantalla
@@ -388,10 +546,21 @@ void MainWindow::mostrarDerrota(const QString &texto)
     QPointF centro = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->rect().center());
     mensaje->setPos(centro.x() - mensaje->boundingRect().width() / 2, centro.y() - 60);
 
-    // Mostrar boton debajo del mensaje
-    botonReiniciar->move((ui->graphicsView->viewport()->width() - botonReiniciar->width()) / 2, (ui->graphicsView->viewport()->height() - botonReiniciar->height()) / 2 + 65);
+
+    // Posicionar los dos botones debajo del mensaje
+    int centroX = ui->graphicsView->viewport()->width() / 2;
+    int posicionY = ui->graphicsView->viewport()->height() / 2 + 65;
+
+    botonReiniciar->move(centroX - 160, posicionY);
+    botonVolverMenu->move(centroX + 10, posicionY);
+
+    // Mostrar los botones
     botonReiniciar->show();
+    botonVolverMenu->show();
+
     botonReiniciar->raise();
+    botonVolverMenu->raise();
+
 }
 
 //ajustar la ventana

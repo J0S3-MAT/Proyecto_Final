@@ -29,6 +29,7 @@ private:
     // Control de animaciones
     int fotograma = 0;
     double tiempoPesado = 0;
+    double tiempoRapido = 0;
     double tiempoAnimacion = 0;
     bool estabaCaminando = false;
     bool mirandoIzquierda = false;
@@ -49,6 +50,9 @@ public:
     void actualizarAnimacion(double dt, bool izquierda, bool derecha);
     QRectF obtenerArea() const;
     void sumarFlor();
+    void sumarFlores(int cantidad);
+    void quitarFlores(int cantidad);
+    void activarVelocidad();
     int obtenerFlores() const;
     double recibirChoque(double velocidadCabra, bool izquierda, bool derecha);
 };
