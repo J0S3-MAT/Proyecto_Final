@@ -26,8 +26,12 @@ Po::Po(QGraphicsScene *escena)
 }
 
 
-void Po::mover(double dt, bool izquierda, bool derecha)
+void Po::mover(double dt, bool izquierda, bool derecha, const std::vector<PlataformaOscilante*> &plataformas)
 {
+
+    // Guardar la posicion antes de moverse
+    double xAnterior = imagen->x();
+
     // Actualizar duracion de la velocidad adicional
     if (tiempoRapido > 0) {
         tiempoRapido -= dt;
@@ -61,6 +65,43 @@ void Po::mover(double dt, bool izquierda, bool derecha)
         }
     }
 
+
+    // Evitar que Po atraviese las plataformas por los lados
+    double desplazamiento = imagen->x() - xAnterior;
+    double anchoPo = imagen->boundingRect().width();
+    QRectF areaPo = imagen->sceneBoundingRect();
+
+    for (PlataformaOscilante *plataforma : plataformas) {
+
+        QRectF areaPlataforma = plataforma->obtenerRectangulo()->sceneBoundingRect();
+
+        // Verificar si Po esta a la misma altura de la plataforma
+        bool coincideAltura = areaPo.bottom() > areaPlataforma.top() + 2 &&
+                              areaPo.top() < areaPlataforma.bottom();
+
+        if (!coincideAltura) {
+            continue;
+        }
+
+        // Po llega desde la izquierda
+        if (desplazamiento > 0 &&
+            xAnterior < areaPlataforma.left() &&
+            areaPo.right() > areaPlataforma.left()) {
+
+            imagen->setX(areaPlataforma.left() - anchoPo);
+            break;
+        }
+
+        // Po llega desde la derecha
+        if (desplazamiento < 0 &&
+            xAnterior + anchoPo > areaPlataforma.right() &&
+            areaPo.left() < areaPlataforma.right()) {
+
+            imagen->setX(areaPlataforma.right());
+            break;
+        }
+    }
+
     // Limites horizontales
     if (imagen->x() < 0) {
         imagen->setX(0);
@@ -82,8 +123,6 @@ void Po::saltar()
         yInicioSalto = imagen->y();
     }
 }
-
-
 
 void Po::actualizarMovimientoVertical(double dt, const std::vector<PlataformaOscilante*> &plataformas)
 {

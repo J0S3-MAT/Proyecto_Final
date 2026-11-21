@@ -44,7 +44,7 @@ private:
 
 public:
     Po(QGraphicsScene *escena);
-    void mover(double dt, bool izquierda, bool derecha);
+    void mover(double dt, bool izquierda, bool derecha, const std::vector<PlataformaOscilante*> &plataformas);
     void saltar();
     void actualizarMovimientoVertical(double dt, const std::vector<PlataformaOscilante*> &plataformas);
     void actualizarAnimacion(double dt, bool izquierda, bool derecha);

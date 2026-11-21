@@ -12,6 +12,8 @@ SOURCES += \
     flor.cpp \
     main.cpp \
     mainwindow.cpp \
+    nivel1.cpp \
+    nivel2.cpp \
     plataformaoscilante.cpp \
     po.cpp
 
@@ -20,6 +22,8 @@ HEADERS += \
     dumpling.h \
     flor.h \
     mainwindow.h \
+    nivel1.h \
+    nivel2.h \
     plataformaoscilante.h \
     po.h
 
