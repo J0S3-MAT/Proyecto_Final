@@ -11,6 +11,7 @@
 #include <QTimer>
 #include <QPixmap>
 #include <QString>
+#include <array>
 #include <vector>
 #include "po.h"
 #include "plataformaoscilante.h"
@@ -40,11 +41,11 @@ private:
     Cabra *cabra = nullptr;
     bool contactoCabra = false;
     QGraphicsPixmapItem *montana = nullptr;
-    QPixmap imagenMontana[4];
+    std::array<QPixmap, 4> imagenMontana;
     int fotogramaMontana = 0;
     double tiempoAnimacionMontana = 0;
     std::vector<QGraphicsRectItem*> trampas;
-    QPixmap imagenLava[5];
+    std::array<QPixmap, 5> imagenLava;
     int fotogramaLava = 0;
     double tiempoAnimacionLava = 0;
 

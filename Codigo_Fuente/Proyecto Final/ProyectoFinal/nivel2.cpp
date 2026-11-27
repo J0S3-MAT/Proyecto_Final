@@ -19,7 +19,7 @@ Nivel2::Nivel2(bool modoDificil)
 
     // Crear a Po en el segundo nivel
     personaje = new Po(escena, true);
-    personaje->sumarFlores(30);
+    personaje->sumarFlores(10);
 
     // Crear el enemigo segun la dificultad
     if (modoDificil) {
@@ -57,7 +57,7 @@ Nivel2::Nivel2(bool modoDificil)
 
     // Contador de flores entregadas
     textoEntregas = escena->addText(
-        "Flores entregadas: 0/30",
+        "Flores entregadas: 0/10",
         QFont("Arial", 16, QFont::Bold));
 
     textoEntregas->setDefaultTextColor(Qt::darkGreen);
@@ -67,6 +67,13 @@ Nivel2::Nivel2(bool modoDificil)
     textoVidas = escena->addText("Vidas: 5/5", QFont("Arial", 16, QFont::Bold));
     textoVidas->setDefaultTextColor(Qt::darkRed);
     textoVidas->setPos(700, 75);
+
+    // Indicador del estado de Po
+    textoEstado = escena->addText("¡RALENTIZADO!", QFont("Arial", 14, QFont::Bold));
+    textoEstado->setDefaultTextColor(Qt::darkCyan);
+    textoEstado->setPos(20, 105);
+    textoEstado->hide();
+
     // Temporizador para actualizar el segundo nivel
     temporizador = new QTimer(escena);
 
@@ -124,13 +131,16 @@ void Nivel2::actualizarJuego()
 
     // Detectar danio causado por el enemigo
     if (enemigo->golpea(personaje->obtenerArea())) {
-        personaje->recibirDanio();
+        personaje->recibirDanio(enemigo->obtenerVelocidadEmpuje());
     }
 
     // Detectar ralentizacion causada por el enemigo
     if (enemigo->ralentiza(personaje->obtenerArea())) {
         personaje->ralentizar();
     }
+
+    // Mostrar el estado de ralentizacion
+    textoEstado->setVisible(personaje->estaRalentizado());
 
     // Actualizar vidas
     textoVidas->setPlainText(QString("Vidas: %1/5").arg(personaje->obtenerVidas()));
@@ -153,7 +163,7 @@ void Nivel2::actualizarJuego()
     }
 
     // Entregar flores a la silleta
-    if (entregaHabilitada && tiempoEspera <= 0 && floresEntregadas < 30 && personaje->obtenerArea().intersects(armazon->sceneBoundingRect())) {
+    if (entregaHabilitada && tiempoEspera <= 0 && floresEntregadas < 10 && personaje->obtenerArea().intersects(armazon->sceneBoundingRect())) {
         personaje->quitarFlores(2);
         floresEntregadas += 2;
         entregaHabilitada = false;
@@ -163,11 +173,11 @@ void Nivel2::actualizarJuego()
         enemigo->ajustarDificultad(floresEntregadas);
         actualizarSpritesFlores();
 
-        textoEntregas->setPlainText(QString("Flores entregadas: %1/30").arg(floresEntregadas));
+        textoEntregas->setPlainText(QString("Flores entregadas: %1/10").arg(floresEntregadas));
     }
 
     // Comprobar si Po completo la silleta
-    if (floresEntregadas >= 30) {
+    if (floresEntregadas >= 10) {
         temporizador->stop();
         emit nivelCompletado();
         return;
@@ -179,7 +189,7 @@ void Nivel2::actualizarJuego()
 void Nivel2::actualizarSpritesFlores()
 {
     // Seleccionar los sprites segun las flores entregadas
-    int indice = floresEntregadas / 6;
+    int indice = floresEntregadas / 2;
 
     canasta->setPixmap(imagenCanasta[indice]);
     silleta->setPixmap(imagenSilleta[indice]);

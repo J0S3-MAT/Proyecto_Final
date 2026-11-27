@@ -272,6 +272,16 @@ void Po::actualizarMovimientoVertical(double dt, const std::vector<PlataformaOsc
 
 void Po::actualizarAnimacion(double dt)
 {
+    // Parpadeo durante la invulnerabilidad
+    if (dashHabilitado) {
+        if (tiempoInvulnerable > 0) {
+            imagen->setOpacity(int(tiempoInvulnerable * 10) % 2 == 0 ? 1.0 : 0.35);
+        }
+        else {
+            imagen->setOpacity(1.0);
+        }
+    }
+
     bool caminando = (izquierda != derecha) && !saltando && !cayendo;
     bool cambioDireccion = false;
 
@@ -392,7 +402,17 @@ void Po::actualizarAnimacion(double dt)
 
 QRectF Po::obtenerArea() const
 {
-    return imagen->sceneBoundingRect();
+    QRectF area = imagen->sceneBoundingRect();
+
+    // Reducir la hitbox en el nivel 2
+    if (dashHabilitado) {
+        double ancho = area.width();
+        double alto = area.height();
+
+        return area.adjusted(ancho * 0.2, alto * 0.1, -ancho * 0.2, 0);
+    }
+
+    return area;
 }
 
 void Po::sumarFlor()
@@ -454,11 +474,18 @@ double Po::recibirChoque(double velocidadCabra)
     return (2 * masaPo * velocidadPo + (masaCabra - masaPo) * velocidadCabra) / (masaPo + masaCabra);
 }
 
-void Po::recibirDanio()
+void Po::recibirDanio(double empuje)
 {
     if (tiempoInvulnerable <= 0 && vidas > 0) {
         vidas--;
         tiempoInvulnerable = 1.0;
+
+        // Aplicar el empuje del enemigo
+        if (empuje != 0) {
+            velocidadChoque = empuje;
+            tiempoChoque = 0.4;
+            tiempoDash = 0;
+        }
     }
 }
 
@@ -471,4 +498,9 @@ void Po::ralentizar()
 {
     // Activar el estado pesado
     tiempoPesado = 3.0;
+}
+
+bool Po::estaRalentizado() const
+{
+    return tiempoPesado > 0;
 }

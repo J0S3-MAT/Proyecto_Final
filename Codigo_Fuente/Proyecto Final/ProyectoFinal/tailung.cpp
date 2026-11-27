@@ -9,7 +9,16 @@ TaiLung::TaiLung(QGraphicsScene *escena) : Enemigo(escena)
     // Cargar los sprites de los ataques
     for (int i = 0; i < 5; i++) {
         imagenEmbestida[i] = QPixmap(QString(":/imagenes/imagenes/tai_embistiendo%1.png").arg(i + 1)).scaledToHeight(70, Qt::FastTransformation);
+    }
+
+    for (int i = 0; i < 4; i++) {
         imagenParabolico[i] = QPixmap(QString(":/imagenes/imagenes/tai_parabolico%1.png").arg(i + 1)).scaledToHeight(130, Qt::FastTransformation);
+    }
+
+    // Cargar los sprites de preparacion
+    for (int i = 0; i < 2; i++) {
+        imagenPrepararSalto[i] = QPixmap(QString(":/imagenes/imagenes/tai_prep_saltar%1.png").arg(i + 1)).scaledToHeight(130, Qt::FastTransformation);
+        imagenPrepararEmbestida[i] = QPixmap(QString(":/imagenes/imagenes/tai_prep_envestir%1.png").arg(i + 1)).scaledToHeight(70, Qt::FastTransformation);
     }
 
     // Mostrar el primer sprite en reposo
@@ -51,7 +60,7 @@ void TaiLung::actuar(double dt, const QRectF &areaPo)
 
             double t = 0.6 - tiempoEstado;
 
-            int indice = qMin(4, int(t / 0.12));
+            int indice = qMin(3, int(t / 0.15));
             mostrarSprite(imagenParabolico[indice]);
 
             double x = xInicioSalto + (xObjetivoSalto - xInicioSalto) * t / 0.6;
@@ -72,6 +81,14 @@ void TaiLung::actuar(double dt, const QRectF &areaPo)
     // Actualizar el tiempo del estado actual
     tiempoEstado -= dt;
 
+    // Animacion de preparacion del ataque
+    if (estado == Preparando && tiempoEstado > 0) {
+        int indice = tiempoEstado > 0.3 ? 0 : 1;
+        mostrarSprite(ataqueSalto ? imagenPrepararSalto[indice] : imagenPrepararEmbestida[indice]);
+        imagen->setY(520 - imagen->boundingRect().height());
+        imagen->setX(qBound(0.0, imagen->x(), 900.0 - imagen->boundingRect().width()));
+    }
+
     if (tiempoEstado > 0) {
         return;
     }
@@ -85,18 +102,18 @@ void TaiLung::actuar(double dt, const QRectF &areaPo)
         estado = Preparando;
         tiempoEstado = 0.6;
 
-        mostrarSprite(ataqueSalto ? imagenParabolico[0] : imagenEmbestida[0]);
-        imagen->setOpacity(0.5);
+        // Mostrar la preparacion del ataque
+        mostrarSprite(ataqueSalto ? imagenPrepararSalto[0] : imagenPrepararEmbestida[0]);
         imagen->setY(520 - imagen->boundingRect().height());
+        imagen->setX(qBound(0.0, imagen->x(), 900.0 - imagen->boundingRect().width()));
     }
 
     // Iniciar el ataque seleccionado
     else if (estado == Preparando) {
-        imagen->setOpacity(1);
-
         if (ataqueSalto) {
-            direccionAtaque = areaPo.center().x() < imagen->sceneBoundingRect().center().x() ? -1 : 1;
+            direccionAtaque = areaPo.center().x() < imagen->x() + imagenParabolico[0].width() / 2.0 ? -1 : 1;
             mostrarSprite(imagenParabolico[0]);
+            imagen->setX(qBound(0.0, imagen->x(), 900.0 - imagen->boundingRect().width()));
 
             xInicioSalto = imagen->x();
             xObjetivoSalto = areaPo.center().x() - imagen->boundingRect().width() / 2;
@@ -106,6 +123,9 @@ void TaiLung::actuar(double dt, const QRectF &areaPo)
             tiempoEstado = 0.6;
         }
         else {
+            mostrarSprite(imagenEmbestida[0]);
+            imagen->setX(qBound(0.0, imagen->x(), 900.0 - imagen->boundingRect().width()));
+
             estado = Embistiendo;
             tiempoEstado = 0.65;
         }
@@ -125,6 +145,16 @@ bool TaiLung::golpea(const QRectF &areaPo) const
     }
 
     return false;
+}
+
+double TaiLung::obtenerVelocidadEmpuje() const
+{
+    // Empuje durante la embestida
+    if (estado == Embistiendo) {
+        return direccionAtaque * 350.0;
+    }
+
+    return 0;
 }
 
 void TaiLung::mostrarSprite(const QPixmap &sprite)

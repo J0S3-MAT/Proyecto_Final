@@ -6,6 +6,7 @@
 #include <QPixmap>
 #include <QGraphicsRectItem>
 #include <QRectF>
+#include <array>
 #include <vector>
 #include "plataformaoscilante.h"
 
@@ -22,10 +23,10 @@ private:
     QGraphicsRectItem *plataformaActual = nullptr;
     // Imagenes de Po
     QPixmap imagenReposo;
-    QPixmap imagenCaminar[6];
-    QPixmap imagenSalto[3];
-    QPixmap imagenChoque[4];
-    QPixmap imagenDash[5];
+    std::array<QPixmap, 6> imagenCaminar;
+    std::array<QPixmap, 3> imagenSalto;
+    std::array<QPixmap, 4> imagenChoque;
+    std::array<QPixmap, 5> imagenDash;
 
     // Control de animaciones
     int fotograma = 0;
@@ -74,10 +75,11 @@ public:
     bool presionarTecla(int tecla, bool repetida);
     void soltarTecla(int tecla, bool repetida);
 
-    void recibirDanio();
+    void recibirDanio(double empuje = 0);
     int obtenerVidas() const;
 
     void ralentizar();
+    bool estaRalentizado() const;
 };
 
 

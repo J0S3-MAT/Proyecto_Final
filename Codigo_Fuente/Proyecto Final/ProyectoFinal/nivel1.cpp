@@ -118,7 +118,7 @@ void Nivel1::iniciar()
         plataformas.push_back(plataforma);
 
         // Algunas plataformas tienen una flor
-        if (QRandomGenerator::global()->bounded(100) < 70) {
+        if (QRandomGenerator::global()->bounded(100) < 90) {
             double ancho = plataforma->obtenerRectangulo()->rect().width();
             flores.push_back(new Flor(escena, (ancho - 30) / 2, -30, plataforma->obtenerRectangulo()));
         }
@@ -306,7 +306,7 @@ void Nivel1::actualizarJuego()
             }
 
             // Actualizar el contador
-            textoFlores->setPlainText(QString("Flores: %1/30").arg(personaje->obtenerFlores()));
+            textoFlores->setPlainText(QString("Flores: %1/10").arg(personaje->obtenerFlores()));
         }
     }
 

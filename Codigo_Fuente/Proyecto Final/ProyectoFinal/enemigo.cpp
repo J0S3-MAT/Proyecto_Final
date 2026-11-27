@@ -64,10 +64,10 @@ bool Enemigo::razonar()
 void Enemigo::ajustarDificultad(int floresEntregadas)
 {
     // Aumentar la dificultad segun las flores entregadas
-    if (floresEntregadas >= 20) {
+    if (floresEntregadas >= 8) {
         factorDificultad = 1.30;
     }
-    else if (floresEntregadas >= 10) {
+    else if (floresEntregadas >= 4) {
         factorDificultad = 1.15;
     }
     else {

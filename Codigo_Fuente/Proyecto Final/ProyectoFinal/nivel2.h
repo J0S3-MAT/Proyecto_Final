@@ -10,6 +10,7 @@
 #include "tailung.h"
 #include "lordshen.h"
 #include <QObject>
+#include <array>
 
 class Nivel2 : public QObject
 {
@@ -21,13 +22,14 @@ private:
     QGraphicsRectItem *armazon;
     QGraphicsTextItem *textoEntregas;
     QGraphicsTextItem *textoVidas;
+    QGraphicsTextItem *textoEstado;
     int floresEntregadas = 0;
     double tiempoEspera = 0;
     bool entregaHabilitada = true;
 
     // Sprites de la canasta y la silleta
-    QPixmap imagenCanasta[6];
-    QPixmap imagenSilleta[6];
+    std::array<QPixmap, 6> imagenCanasta;
+    std::array<QPixmap, 6> imagenSilleta;
 
     QGraphicsPixmapItem *canasta;
     QGraphicsPixmapItem *silleta;

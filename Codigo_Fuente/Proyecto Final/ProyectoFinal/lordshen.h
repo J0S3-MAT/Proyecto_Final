@@ -2,6 +2,7 @@
 #define LORDSHEN_H
 
 #include "enemigo.h"
+#include <array>
 
 class LordShen : public Enemigo
 {
@@ -34,8 +35,8 @@ private:
 
     // Animacion del movimiento
     // Animaciones del enemigo
-    QPixmap imagenCaminar[5];
-    QPixmap imagenLanzamiento[4];
+    std::array<QPixmap, 5> imagenCaminar;
+    std::array<QPixmap, 4> imagenLanzamiento;
     int fotograma = 0;
     double tiempoAnimacion = 0;
 
