@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QBoxLayout>
+#include <QLabel>
 #include <QGraphicsScene>
 #include <QKeyEvent>
 #include <QPushButton>
@@ -35,6 +37,10 @@ private:
     Nivel1 *nivel1 = nullptr;
     Nivel2 *nivel2 = nullptr;
     bool modoDificil = false;
+    QWidget *panelResultado = nullptr;
+    QLabel *tituloResultado = nullptr;
+    QLabel *mensajeResultado = nullptr;
+    QBoxLayout *botonesResultado = nullptr;
     QPushButton *botonReiniciar = nullptr;
     QPushButton *botonVolverMenu = nullptr;
     QPushButton *botonContinuarNivel2 = nullptr;
@@ -45,6 +51,7 @@ private:
     void iniciarNivel2();
     void mostrarResultado(const QString &texto, bool victoria = false);
     void mostrarVictoria();
+    void posicionarResultado();
 };
 
 #endif // MAINWINDOW_H
