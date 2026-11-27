@@ -29,6 +29,7 @@ public:
 
     QRectF obtenerArea() const;
     virtual bool golpea(const QRectF &areaPo) const = 0;
+    virtual double obtenerVelocidadEmpuje() const { return 0; }
 
     // Percepcion y accion del agente
     void percibir(bool salto);

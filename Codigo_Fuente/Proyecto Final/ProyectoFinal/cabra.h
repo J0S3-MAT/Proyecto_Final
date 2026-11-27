@@ -5,15 +5,16 @@
 #include <QGraphicsPixmapItem>
 #include <QPixmap>
 #include <QGraphicsRectItem>
+#include <array>
 #include <vector>
 
 class Cabra
 {
 private:
     QGraphicsPixmapItem *imagen;
-    QPixmap imagenCorrer[6];
+    std::array<QPixmap, 6> imagenCorrer;
     // Animacion cuando la cabra toca la lava
-    QPixmap imagenQuemando[3];
+    std::array<QPixmap, 3> imagenQuemando;
     bool quemando = false;
     int fotogramaQuemando = 0;
     double tiempoQuemando = 0;

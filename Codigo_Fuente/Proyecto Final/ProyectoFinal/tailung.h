@@ -3,6 +3,7 @@
 
 #include "enemigo.h"
 #include <QPixmap>
+#include <array>
 
 class TaiLung : public Enemigo
 {
@@ -25,8 +26,12 @@ private:
     double xObjetivoSalto = 0;
 
     // Sprites de los ataques
-    QPixmap imagenEmbestida[5];
-    QPixmap imagenParabolico[5];
+    std::array<QPixmap, 5> imagenEmbestida;
+    std::array<QPixmap, 4> imagenParabolico;
+
+    // Sprites de preparacion de los ataques
+    std::array<QPixmap, 2> imagenPrepararSalto;
+    std::array<QPixmap, 2> imagenPrepararEmbestida;
 
     void mostrarSprite(const QPixmap &sprite);
 
@@ -36,6 +41,7 @@ public:
     TaiLung(QGraphicsScene *escena);
     void actuar(double dt, const QRectF &areaPo) override;
     bool golpea(const QRectF &areaPo) const override;
+    double obtenerVelocidadEmpuje() const override;
 
 };
 
