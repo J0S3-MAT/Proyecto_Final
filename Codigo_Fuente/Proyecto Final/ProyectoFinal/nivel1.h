@@ -28,12 +28,10 @@ private:
     bool modoDificil = false;
     bool activo = false;
     Po *personaje = nullptr;
-    bool izquierda = false;
-    bool derecha = false;
     QElapsedTimer reloj;
     std::vector<PlataformaOscilante*> plataformas;
     double tiempoJuego = 0;
-    double tiempoRestante = 60.0;
+    double tiempoRestante = 15.0;
     std::vector<Flor*> flores;
     std::vector<Dumpling*> dumplings;
     QGraphicsTextItem *textoFlores = nullptr;

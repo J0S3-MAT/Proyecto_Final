@@ -25,6 +25,7 @@ private:
     QPixmap imagenCaminar[6];
     QPixmap imagenSalto[3];
     QPixmap imagenChoque[4];
+    QPixmap imagenDash[5];
 
     // Control de animaciones
     int fotograma = 0;
@@ -41,20 +42,42 @@ private:
     double velocidadChoque = 0;
     double tiempoChoque = 0;
 
+    bool izquierda = false;
+    bool derecha = false;
+
+    // Dash
+    bool dashHabilitado = false;
+    double tiempoDash = 0;
+    double tiempoRecargaDash = 0;
+    int direccionDash = 1;
+
+    // Sistema de vida
+    int vidas = 5;
+    double tiempoInvulnerable = 0;
+
 
 public:
-    Po(QGraphicsScene *escena);
-    void mover(double dt, bool izquierda, bool derecha, const std::vector<PlataformaOscilante*> &plataformas);
+    Po(QGraphicsScene *escena, bool permiteDash = false);
+    void iniciarDash();
+    void mover(double dt, const std::vector<PlataformaOscilante*> &plataformas);
     void saltar();
     void actualizarMovimientoVertical(double dt, const std::vector<PlataformaOscilante*> &plataformas);
-    void actualizarAnimacion(double dt, bool izquierda, bool derecha);
+    void actualizarAnimacion(double dt);
     QRectF obtenerArea() const;
     void sumarFlor();
     void sumarFlores(int cantidad);
     void quitarFlores(int cantidad);
     void activarVelocidad();
     int obtenerFlores() const;
-    double recibirChoque(double velocidadCabra, bool izquierda, bool derecha);
+    double recibirChoque(double velocidadCabra);
+
+    bool presionarTecla(int tecla, bool repetida);
+    void soltarTecla(int tecla, bool repetida);
+
+    void recibirDanio();
+    int obtenerVidas() const;
+
+    void ralentizar();
 };
 
 

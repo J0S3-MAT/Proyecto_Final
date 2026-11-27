@@ -9,23 +9,29 @@ CONFIG += c++17
 SOURCES += \
     cabra.cpp \
     dumpling.cpp \
+    enemigo.cpp \
     flor.cpp \
+    lordshen.cpp \
     main.cpp \
     mainwindow.cpp \
     nivel1.cpp \
     nivel2.cpp \
     plataformaoscilante.cpp \
-    po.cpp
+    po.cpp \
+    tailung.cpp
 
 HEADERS += \
     cabra.h \
     dumpling.h \
+    enemigo.h \
     flor.h \
+    lordshen.h \
     mainwindow.h \
     nivel1.h \
     nivel2.h \
     plataformaoscilante.h \
-    po.h
+    po.h \
+    tailung.h
 
 FORMS += \
     mainwindow.ui
