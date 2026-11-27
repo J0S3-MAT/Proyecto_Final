@@ -57,7 +57,10 @@ public:
 
 signals:
     void nivelCompletado();
-    void nivelPerdido(const QString &mensaje);};
+    void nivelPerdido(const QString &mensaje);
+    void florEntregada();
+    void vidaPerdida();
+};
 
 #endif // NIVEL2_H
 

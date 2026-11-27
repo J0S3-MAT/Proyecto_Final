@@ -15,6 +15,8 @@
 #include <QTextDocument>
 #include <QTextOption>
 #include <QVBoxLayout>
+#include <QMessageBox>
+#include <stdexcept>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -42,6 +44,35 @@ MainWindow::MainWindow(QWidget *parent)
 
     musicaNivel1->setSource(QUrl("qrc:/audios/musica_nivel1.mp3"));
     musicaNivel1->setLoops(QMediaPlayer::Infinite);
+
+    // Crear reproductores para los sonidos de eventos
+    auto crearSonido = [this](const QString &ruta) {
+        QMediaPlayer *reproductor = new QMediaPlayer(this);
+        QAudioOutput *audio = new QAudioOutput(this);
+
+        reproductor->setAudioOutput(audio);
+        audio->setVolume(0.65);
+
+        // Mostrar un mensaje si ocurre un error
+        connect(reproductor, &QMediaPlayer::errorOccurred, this,
+                [ruta](QMediaPlayer::Error, const QString &mensaje) {
+                    qWarning() << "Error de audio:" << ruta << mensaje;
+                });
+
+        reproductor->setSource(QUrl(ruta));
+
+        return reproductor;
+    };
+
+    // Cargar los tres sonidos
+    sonidoVictoria = crearSonido("qrc:/audios/victoria.m4a");
+    sonidoDerrota = crearSonido("qrc:/audios/derrota.m4a");
+    sonidoPonFlor = crearSonido("qrc:/audios/ponflor.m4a");
+
+    // Sonido cuando Po pierde una vida
+    sonidoAtaque = new QSoundEffect(this);
+    sonidoAtaque->setSource(QUrl("qrc:/audios/ataque.wav"));
+    sonidoAtaque->setVolume(0.65);
 
 
     // Estilo de los botones
@@ -105,7 +136,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Reiniciar conservando el nivel y la dificultad
     connect(botonReiniciar, &QPushButton::clicked, this, [this]() {
-
+        sonidoAtaque->stop();
+        sonidoDerrota->stop();
         if (nivel2 != nullptr) {
             iniciarNivel2();
             return;
@@ -122,6 +154,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Volver al menu principal
     connect(botonVolverMenu, &QPushButton::clicked, this, [this]() {
+        // Detener todos los audios antes de regresar al menu
+        musicaNivel1->stop();
+        sonidoVictoria->stop();
+        sonidoDerrota->stop();
+        sonidoPonFlor->stop();
         MainWindow *nueva = new MainWindow();
         nueva->setAttribute(Qt::WA_DeleteOnClose);
         nueva->setGeometry(geometry());
@@ -250,13 +287,49 @@ void MainWindow::iniciarNivel()
         mostrarVictoria();
     });
 
-    nivel1->iniciar();
+    try {
+        nivel1->iniciar();
+    }
+    catch (const std::invalid_argument &error) {
+
+        // Regresar al menu si ocurre un error
+        ui->graphicsView->setScene(escenaMenu);
+
+        delete nivel1;
+        nivel1 = nullptr;
+
+        QMessageBox::critical(
+            this,
+            "Error al iniciar el nivel",
+            QString::fromUtf8(error.what())
+            );
+
+        return;
+    }
+
     musicaNivel1->play();
     setFocus();
+
 }
 
 void MainWindow::mostrarResultado(const QString &texto, bool victoria)
 {
+
+    // Detener cualquier sonido anterior
+    sonidoVictoria->stop();
+    sonidoDerrota->stop();
+    sonidoPonFlor->stop();
+
+    // Reproducir el sonido correspondiente
+    if (victoria) {
+        sonidoVictoria->setPosition(0);
+        sonidoVictoria->play();
+    }
+    else {
+        sonidoDerrota->setPosition(0);
+        sonidoDerrota->play();
+    }
+
     // Mostrar el mensaje del nivel
     tituloResultado->setText(victoria ? "VICTORIA" : "DERROTA");
     tituloResultado->setStyleSheet(victoria ? "color: #C9A563;" : "color: #EF6666;");
@@ -316,6 +389,10 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 
 void MainWindow::iniciarNivel2()
 {
+    // Detener los audios del nivel anterior
+    musicaNivel1->stop();
+    sonidoVictoria->stop();
+
     // Crear o reiniciar el segundo nivel
     delete nivel2;
     nivel2 = new Nivel2(modoDificil);
@@ -327,6 +404,20 @@ void MainWindow::iniciarNivel2()
 
     connect(nivel2, &Nivel2::nivelCompletado, this, [this]() {
         mostrarResultado("¡PO COMPLETÓ SU SILLETA!", true);
+    });
+
+
+    // Reproducir sonido al entregar flores
+    connect(nivel2, &Nivel2::florEntregada, this, [this]() {
+        sonidoPonFlor->stop();
+        sonidoPonFlor->setPosition(0);
+        sonidoPonFlor->play();
+    });
+
+    // Sonido cuando Po recibe daño
+    connect(nivel2, &Nivel2::vidaPerdida, this, [this]() {
+        sonidoAtaque->stop();
+        sonidoAtaque->play();
     });
 
     // Cambiar de escenario

@@ -159,10 +159,21 @@ void Nivel2::actualizarJuego()
     personaje->actualizarAnimacion(dt);
     enemigo->actuar(dt, personaje->obtenerArea());
 
-    // Detectar danio causado por el enemigo
+
+    // Detectar daño causado por el enemigo
     if (enemigo->golpea(personaje->obtenerArea())) {
+
+        // Guardar las vidas antes de recibir el ataque
+        int vidasAntes = personaje->obtenerVidas();
+
         personaje->recibirDanio(enemigo->obtenerVelocidadEmpuje());
+
+        // Reproducir sonido solo si realmente perdio una vida
+        if (personaje->obtenerVidas() < vidasAntes) {
+            emit vidaPerdida();
+        }
     }
+
 
     // Detectar ralentizacion causada por el enemigo
     if (enemigo->ralentiza(personaje->obtenerArea())) {
@@ -201,6 +212,9 @@ void Nivel2::actualizarJuego()
         floresEntregadas += 2;
         entregaHabilitada = false;
         tiempoEspera = 3.0;
+
+        // Avisar que Po entrego flores
+        emit florEntregada();
 
         // Ajustar la dificultad del enemigo
         enemigo->ajustarDificultad(floresEntregadas);

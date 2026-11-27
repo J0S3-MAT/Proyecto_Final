@@ -4,9 +4,15 @@
 #include <QPen>
 #include <cmath>
 #include <QPixmap>
+#include <stdexcept>
 
 PlataformaOscilante::PlataformaOscilante(QGraphicsScene *escena, double x, double y, double a, double t, int tipo)
 {
+    // Evitar un periodo invalido en el movimiento armonico
+    if (t <= 0) {
+        throw std::invalid_argument("El periodo de la plataforma debe ser mayor que cero.");
+    }
+
     centroY = y;
     amplitud = a;
     periodo = t;

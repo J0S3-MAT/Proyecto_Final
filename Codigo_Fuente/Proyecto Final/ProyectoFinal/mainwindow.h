@@ -9,6 +9,7 @@
 #include <QPushButton>
 #include <QMediaPlayer>
 #include <QAudioOutput>
+#include <QSoundEffect>
 #include "nivel1.h"
 #include "nivel2.h"
 
@@ -46,6 +47,13 @@ private:
     QPushButton *botonContinuarNivel2 = nullptr;
     QMediaPlayer *musicaNivel1 = nullptr;
     QAudioOutput *salidaAudio = nullptr;
+
+    // Sonidos de los eventos del videojuego
+    QMediaPlayer *sonidoVictoria = nullptr;
+    QMediaPlayer *sonidoDerrota = nullptr;
+    QMediaPlayer *sonidoPonFlor = nullptr;
+    QSoundEffect *sonidoAtaque = nullptr;
+
 
     void iniciarNivel();
     void iniciarNivel2();
