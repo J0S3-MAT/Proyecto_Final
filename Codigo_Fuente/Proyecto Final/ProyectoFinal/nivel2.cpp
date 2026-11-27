@@ -1,4 +1,5 @@
 #include "nivel2.h"
+#include <QApplication>
 #include <QBrush>
 #include <QPen>
 #include <QColor>
@@ -47,32 +48,61 @@ Nivel2::Nivel2(bool modoDificil)
 
     actualizarSpritesFlores();
 
-    // Titulo
-    QGraphicsTextItem *titulo = escena->addText(
-        "NIVEL 2 - LA BATALLA POR LA SILLETA",
-        QFont("Arial", 20, QFont::Bold));
+    // Franja de la interfaz
+    QGraphicsRectItem *fondoInterfaz = escena->addRect(0, 0, 900, 82, QPen(Qt::NoPen), QColor(34, 37, 34, 225));
+    fondoInterfaz->setZValue(20);
+    QGraphicsRectItem *bordeInterfaz = new QGraphicsRectItem(0, 80, 900, 2, fondoInterfaz);
+    bordeInterfaz->setPen(Qt::NoPen);
+    bordeInterfaz->setBrush(QColor("#C9A563"));
 
-    titulo->setDefaultTextColor(Qt::darkGreen);
-    titulo->setPos(100, 25);
+    QFont fuente = QApplication::font();
+    fuente.setBold(true);
+    auto agregarTexto = [&](const QString &texto, int tamano, const QColor &color) {
+        fuente.setPixelSize(tamano);
+        QGraphicsSimpleTextItem *elemento = new QGraphicsSimpleTextItem(texto, fondoInterfaz);
+        elemento->setFont(fuente);
+        elemento->setBrush(color);
+        return elemento;
+    };
+
+    // Titulo
+    QGraphicsSimpleTextItem *titulo = agregarTexto("SILLETA", 18, QColor("#D1B88D"));
+    titulo->setPos(450 - titulo->boundingRect().width() / 2, 6);
 
     // Contador de flores entregadas
-    textoEntregas = escena->addText(
-        "Flores entregadas: 0/10",
-        QFont("Arial", 16, QFont::Bold));
-
-    textoEntregas->setDefaultTextColor(Qt::darkGreen);
-    textoEntregas->setPos(20, 75);
+    textoEntregas = agregarTexto("00/10", 34, QColor("#FFF3D6"));
+    textoEntregas->setPos(450 - textoEntregas->boundingRect().width() / 2, 31);
 
     // Contador de vidas
-    textoVidas = escena->addText("Vidas: 5/5", QFont("Arial", 16, QFont::Bold));
-    textoVidas->setDefaultTextColor(Qt::darkRed);
-    textoVidas->setPos(700, 75);
+    QGraphicsSimpleTextItem *textoVidas = agregarTexto("VIDAS", 18, QColor("#D1B88D"));
+    textoVidas->setPos(22, 6);
+    QPixmap iconoVida = QPixmap(":/imagenes/imagenes/po_vida.png").scaledToHeight(30, Qt::FastTransformation);
+    for (int i = 0; i < 5; i++) {
+        iconosVidas[i] = new QGraphicsPixmapItem(iconoVida, fondoInterfaz);
+        iconosVidas[i]->setPos(22 + i * (iconoVida.width() + 8), 34);
+    }
+
+    // Indicador del dash
+    QGraphicsSimpleTextItem *etiquetaDash = agregarTexto("DASH", 18, QColor("#D1B88D"));
+    etiquetaDash->setPos(780 - etiquetaDash->boundingRect().width() / 2, 6);
+    textoDash = agregarTexto("", 20, QColor("#FFF3D6"));
+    fondoBarraDash = new QGraphicsRectItem(0, 0, 156, 7, fondoInterfaz);
+    fondoBarraDash->setPos(702, 65);
+    fondoBarraDash->setPen(Qt::NoPen);
+    fondoBarraDash->setBrush(QColor("#454945"));
+    rellenoBarraDash = new QGraphicsRectItem(fondoBarraDash);
+    rellenoBarraDash->setPen(Qt::NoPen);
+    actualizarDash();
 
     // Indicador del estado de Po
-    textoEstado = escena->addText("¡RALENTIZADO!", QFont("Arial", 14, QFont::Bold));
-    textoEstado->setDefaultTextColor(Qt::darkCyan);
-    textoEstado->setPos(20, 105);
-    textoEstado->hide();
+    fondoEstado = escena->addRect(0, 0, 0, 32, QPen(Qt::NoPen), QColor(34, 37, 34, 225));
+    fondoEstado->setPos(20, 92);
+    fondoEstado->setZValue(20);
+    QGraphicsSimpleTextItem *textoEstado = agregarTexto("¡RALENTIZADO!", 18, QColor("#87D7EC"));
+    textoEstado->setParentItem(fondoEstado);
+    textoEstado->setPos(10, 5);
+    fondoEstado->setRect(0, 0, textoEstado->boundingRect().width() + 20, 32);
+    fondoEstado->hide();
 
     // Temporizador para actualizar el segundo nivel
     temporizador = new QTimer(escena);
@@ -140,10 +170,13 @@ void Nivel2::actualizarJuego()
     }
 
     // Mostrar el estado de ralentizacion
-    textoEstado->setVisible(personaje->estaRalentizado());
+    fondoEstado->setVisible(personaje->estaRalentizado());
 
-    // Actualizar vidas
-    textoVidas->setPlainText(QString("Vidas: %1/5").arg(personaje->obtenerVidas()));
+    // Actualizar los iconos de vida
+    for (int i = 0; i < 5; i++) {
+        iconosVidas[i]->setVisible(i < personaje->obtenerVidas());
+    }
+    actualizarDash();
 
     // Comprobar derrota
     if (personaje->obtenerVidas() <= 0) {
@@ -173,7 +206,8 @@ void Nivel2::actualizarJuego()
         enemigo->ajustarDificultad(floresEntregadas);
         actualizarSpritesFlores();
 
-        textoEntregas->setPlainText(QString("Flores entregadas: %1/10").arg(floresEntregadas));
+        textoEntregas->setText(QString("%1/10").arg(floresEntregadas, 2, 10, QChar('0')));
+        textoEntregas->setX(450 - textoEntregas->boundingRect().width() / 2);
     }
 
     // Comprobar si Po completo la silleta
@@ -184,6 +218,18 @@ void Nivel2::actualizarJuego()
     }
 
 
+}
+
+void Nivel2::actualizarDash()
+{
+    bool listo = personaje->puedeIniciarDash();
+    double progreso = personaje->obtenerProgresoRecargaDash();
+
+    textoDash->setText(listo ? "LISTO" : (progreso < 1 ? "RECARGANDO" : "EN EL AIRE"));
+    textoDash->setBrush(QColor(listo ? "#A8D57C" : "#FFF3D6"));
+    textoDash->setPos(fondoBarraDash->x() + (fondoBarraDash->rect().width() - textoDash->boundingRect().width()) / 2, 31);
+    rellenoBarraDash->setRect(0, 0, fondoBarraDash->rect().width() * progreso, fondoBarraDash->rect().height());
+    rellenoBarraDash->setBrush(QColor(listo ? "#A8D57C" : "#C9A563"));
 }
 
 void Nivel2::actualizarSpritesFlores()

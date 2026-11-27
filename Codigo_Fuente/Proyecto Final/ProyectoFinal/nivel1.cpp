@@ -1,4 +1,5 @@
 #include "nivel1.h"
+#include <QApplication>
 #include <QBrush>
 #include <QColor>
 #include <QPen>
@@ -43,15 +44,37 @@ Nivel1::Nivel1(QGraphicsView *vista, bool dificil, QObject *parent)
     }
 
 
+    // Franja de la interfaz
+    fondoInterfaz = escena->addRect(0, 0, 900, 82, QPen(Qt::NoPen), QColor(34, 37, 34, 225));
+    fondoInterfaz->setZValue(20);
+    bordeInterfaz = new QGraphicsRectItem(fondoInterfaz);
+    bordeInterfaz->setPen(Qt::NoPen);
+    bordeInterfaz->setBrush(QColor("#C9A563"));
+
+    QFont fuente = QApplication::font();
+    fuente.setBold(true);
+    auto agregarTexto = [&](const QString &texto, int tamano, const QColor &color) {
+        fuente.setPixelSize(tamano);
+        QGraphicsSimpleTextItem *elemento = new QGraphicsSimpleTextItem(texto, fondoInterfaz);
+        elemento->setFont(fuente);
+        elemento->setBrush(color);
+        return elemento;
+    };
+
     // Contador de flores
-    textoFlores = escena->addText("Flores: 0/10", QFont("Arial", 16, QFont::Bold));
-    textoFlores->setDefaultTextColor(Qt::darkGreen);
-    textoFlores->setPos(20, 15);
+    QPixmap florIcono = QPixmap(":/imagenes/imagenes/flor.png").scaledToHeight(30, Qt::FastTransformation);
+    QGraphicsPixmapItem *iconoFlor = new QGraphicsPixmapItem(florIcono, fondoInterfaz);
+    iconoFlor->setPos(22, 25);
+    textoFlores = agregarTexto("00/10", 30, QColor("#FFF3D6"));
+    textoFlores->setPos(33 + florIcono.width(), 22);
 
     // Contador de tiempo
-    textoTiempo = escena->addText("Tiempo: 15 s", QFont("Arial", 16, QFont::Bold));
-    textoTiempo->setDefaultTextColor(Qt::darkGreen);
-    textoTiempo->setPos(710, 15);
+    etiquetaTiempo = agregarTexto("TIEMPO", 18, QColor("#D1B88D"));
+    textoTiempo = agregarTexto("15 s", 36, QColor("#FFF3D6"));
+
+    // Nivel y dificultad
+    textoNivel = agregarTexto("NIVEL 1", 20, QColor("#FFF3D6"));
+    textoDificultad = agregarTexto(modoDificil ? "DIFÍCIL" : "FÁCIL", 19, QColor(modoDificil ? "#EF6666" : "#A8D57C"));
 
     // Temporizador del juego
     temporizador = new QTimer(this);
@@ -168,12 +191,29 @@ void Nivel1::iniciar()
     vista->fitInView(QRectF(0, 0, 900, 500), Qt::KeepAspectRatio);
     vista->centerOn(personaje->obtenerArea().center().x(), 300);
     vista->setAlignment(Qt::AlignHCenter | Qt::AlignBottom);
+    posicionarInterfaz();
 
     activo = true;
     cabra->configurarDificultad(modoDificil);
 
     reloj.start();
     temporizador->start(16);
+}
+
+void Nivel1::posicionarInterfaz()
+{
+    // Mantener los contadores visibles
+    QRectF areaVisible = vista->mapToScene(vista->viewport()->rect()).boundingRect();
+    double ancho = areaVisible.width();
+
+    fondoInterfaz->setPos(areaVisible.topLeft());
+    fondoInterfaz->setRect(0, 0, ancho, 82);
+    bordeInterfaz->setRect(0, 80, ancho, 2);
+
+    etiquetaTiempo->setPos((ancho - etiquetaTiempo->boundingRect().width()) / 2, 6);
+    textoTiempo->setPos((ancho - textoTiempo->boundingRect().width()) / 2, 30);
+    textoNivel->setPos(ancho - textoNivel->boundingRect().width() - 22, 11);
+    textoDificultad->setPos(ancho - textoDificultad->boundingRect().width() - 22, 39);
 }
 
 void Nivel1::presionarTecla(int tecla, bool repetida)
@@ -209,6 +249,7 @@ void Nivel1::terminarConDerrota(const QString &texto)
 {
     temporizador->stop();
     activo = false;
+    posicionarInterfaz();
     emit nivelPerdido(texto);
 }
 
@@ -238,7 +279,8 @@ void Nivel1::actualizarJuego()
     }
 
     // Mostrar el tiempo en pantalla
-    textoTiempo->setPlainText(QString("Tiempo: %1 s").arg(static_cast<int>(std::ceil(tiempoRestante))));
+    textoTiempo->setText(QString("%1 s").arg(static_cast<int>(std::ceil(tiempoRestante))));
+    textoTiempo->setBrush(QColor(tiempoRestante <= 5 ? "#EF6666" : "#FFF3D6"));
 
     // Verificar si se termino el tiempo
     if (tiempoRestante <= 0) {
@@ -277,7 +319,6 @@ void Nivel1::actualizarJuego()
     if (tocandoCabra && !contactoCabra) {
         double nuevaVelocidadCabra = personaje->recibirChoque(cabra->obtenerVelocidad());
         cabra->recibirChoque(nuevaVelocidadCabra);
-        textoFlores->setPlainText(QString("Flores: %1/10").arg(personaje->obtenerFlores()));
     }
 
     contactoCabra = tocandoCabra;
@@ -286,7 +327,6 @@ void Nivel1::actualizarJuego()
     for (Flor *flor : flores) {
         if (flor->recolectarSiToca(personaje->obtenerArea())) {
             personaje->sumarFlor();
-            textoFlores->setPlainText(QString("Flores: %1/10").arg(personaje->obtenerFlores()));
         }
     }
 
@@ -304,16 +344,17 @@ void Nivel1::actualizarJuego()
                 // Dumpling malo: quitar dos flores
                 personaje->quitarFlores(2);
             }
-
-            // Actualizar el contador
-            textoFlores->setPlainText(QString("Flores: %1/10").arg(personaje->obtenerFlores()));
         }
     }
+
+    // Actualizar el contador
+    textoFlores->setText(QString("%1/10").arg(personaje->obtenerFlores(), 2, 10, QChar('0')));
 
     // Verificar si Po completo el primer nivel
     if (personaje->obtenerFlores() >= 10) {
         temporizador->stop();
         activo = false;
+        posicionarInterfaz();
         emit nivelCompletado();
 
         return;
@@ -326,11 +367,7 @@ void Nivel1::actualizarJuego()
     // Camara horizontal
     vista->centerOn(personaje->obtenerArea().center().x(), 300);
 
-    // Mantener los contadores visibles
-    QPointF esquinaVista = vista->mapToScene(0, 0);
-
-    textoFlores->setPos(esquinaVista.x() + 20, esquinaVista.y() + 15);
-    textoTiempo->setPos(esquinaVista.x() + 710, esquinaVista.y() + 15);
+    posicionarInterfaz();
 
     // Movimiento de la montana
     double distanciaMontana = personaje->obtenerArea().left() - montana->sceneBoundingRect().right();

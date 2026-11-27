@@ -60,6 +60,8 @@ private:
 public:
     Po(QGraphicsScene *escena, bool permiteDash = false);
     void iniciarDash();
+    bool puedeIniciarDash() const;
+    double obtenerProgresoRecargaDash() const;
     void mover(double dt, const std::vector<PlataformaOscilante*> &plataformas);
     void saltar();
     void actualizarMovimientoVertical(double dt, const std::vector<PlataformaOscilante*> &plataformas);

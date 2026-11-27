@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QGraphicsScene>
 #include <QGraphicsView>
-#include <QGraphicsTextItem>
+#include <QGraphicsSimpleTextItem>
 #include <QGraphicsPixmapItem>
 #include <QGraphicsRectItem>
 #include <QElapsedTimer>
@@ -35,8 +35,13 @@ private:
     double tiempoRestante = 15.0;
     std::vector<Flor*> flores;
     std::vector<Dumpling*> dumplings;
-    QGraphicsTextItem *textoFlores = nullptr;
-    QGraphicsTextItem *textoTiempo = nullptr;
+    QGraphicsRectItem *fondoInterfaz = nullptr;
+    QGraphicsRectItem *bordeInterfaz = nullptr;
+    QGraphicsSimpleTextItem *textoFlores = nullptr;
+    QGraphicsSimpleTextItem *etiquetaTiempo = nullptr;
+    QGraphicsSimpleTextItem *textoTiempo = nullptr;
+    QGraphicsSimpleTextItem *textoNivel = nullptr;
+    QGraphicsSimpleTextItem *textoDificultad = nullptr;
     QTimer *temporizador = nullptr;
     Cabra *cabra = nullptr;
     bool contactoCabra = false;
@@ -57,6 +62,7 @@ public:
     ~Nivel1() override;
 
     void iniciar();
+    void posicionarInterfaz();
     void presionarTecla(int tecla, bool repetida);
     void soltarTecla(int tecla, bool repetida);
     QGraphicsScene *obtenerEscena() const;

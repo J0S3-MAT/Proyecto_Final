@@ -3,7 +3,8 @@
 
 #include <QGraphicsScene>
 #include <QGraphicsRectItem>
-#include <QGraphicsTextItem>
+#include <QGraphicsPixmapItem>
+#include <QGraphicsSimpleTextItem>
 #include "po.h"
 #include <QTimer>
 #include <QElapsedTimer>
@@ -20,9 +21,12 @@ private:
     Po *personaje;
     Enemigo *enemigo;
     QGraphicsRectItem *armazon;
-    QGraphicsTextItem *textoEntregas;
-    QGraphicsTextItem *textoVidas;
-    QGraphicsTextItem *textoEstado;
+    QGraphicsSimpleTextItem *textoEntregas;
+    std::array<QGraphicsPixmapItem*, 5> iconosVidas;
+    QGraphicsSimpleTextItem *textoDash;
+    QGraphicsRectItem *fondoBarraDash;
+    QGraphicsRectItem *rellenoBarraDash;
+    QGraphicsRectItem *fondoEstado;
     int floresEntregadas = 0;
     double tiempoEspera = 0;
     bool entregaHabilitada = true;
@@ -41,6 +45,7 @@ private:
     QElapsedTimer reloj;
 
     void actualizarJuego();
+    void actualizarDash();
 
 public:
     Nivel2(bool modoDificil);

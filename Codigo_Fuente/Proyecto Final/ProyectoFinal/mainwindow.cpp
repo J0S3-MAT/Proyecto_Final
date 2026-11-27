@@ -11,12 +11,17 @@
 #include <QResizeEvent>
 #include <QUrl>
 #include <QFile>
+#include <QPen>
+#include <QTextDocument>
+#include <QTextOption>
+#include <QVBoxLayout>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    setWindowTitle("Kung Fu Paisa");
 
     // Preparar la musica del primer nivel
     musicaNivel1 = new QMediaPlayer(this);
@@ -39,23 +44,59 @@ MainWindow::MainWindow(QWidget *parent)
     musicaNivel1->setLoops(QMediaPlayer::Infinite);
 
 
+    // Estilo de los botones
+    const QString estiloBotones =
+        "QPushButton { background-color: #222522; color: #FFF3D6; border: 2px solid #C9A563; font-size: 22px; font-weight: bold; }"
+        "QPushButton:hover { background-color: #353B32; border-color: #FFF3D6; }"
+        "QPushButton:pressed { background-color: #C9A563; color: #222522; border-color: #C9A563; }";
+
+    // Panel de resultados
+    panelResultado = new QWidget(ui->graphicsView->viewport());
+    panelResultado->setObjectName("panelResultado");
+    panelResultado->setAttribute(Qt::WA_StyledBackground);
+    panelResultado->setStyleSheet("QWidget#panelResultado { background-color: rgba(34, 37, 34, 245); border: 3px solid #C9A563; }");
+    QVBoxLayout *contenidoResultado = new QVBoxLayout(panelResultado);
+    contenidoResultado->setContentsMargins(24, 20, 24, 24);
+    contenidoResultado->setSpacing(12);
+
+    QFont fuenteResultado = font();
+    fuenteResultado.setBold(true);
+    fuenteResultado.setPixelSize(44);
+    tituloResultado = new QLabel(panelResultado);
+    tituloResultado->setFont(fuenteResultado);
+    tituloResultado->setAlignment(Qt::AlignCenter);
+    contenidoResultado->addWidget(tituloResultado);
+    fuenteResultado.setBold(false);
+    fuenteResultado.setPixelSize(26);
+    mensajeResultado = new QLabel(panelResultado);
+    mensajeResultado->setFont(fuenteResultado);
+    mensajeResultado->setTextFormat(Qt::PlainText);
+    mensajeResultado->setAlignment(Qt::AlignCenter);
+    mensajeResultado->setWordWrap(true);
+    mensajeResultado->setStyleSheet("color: #FFF3D6;");
+    contenidoResultado->addWidget(mensajeResultado);
+
+    botonesResultado = new QBoxLayout(QBoxLayout::LeftToRight);
+    botonesResultado->setAlignment(Qt::AlignCenter);
+    botonesResultado->setSpacing(12);
+    contenidoResultado->addLayout(botonesResultado);
+
     // Boton para reiniciar el nivel
-    botonReiniciar = new QPushButton("REINICIAR", ui->graphicsView->viewport());
-    botonReiniciar->setFixedSize(150, 40);
-    botonReiniciar->setFocusPolicy(Qt::NoFocus);
-    botonReiniciar->hide();
+    botonReiniciar = new QPushButton("REINTENTAR", panelResultado);
 
     // Boton para volver al menu
-    botonVolverMenu = new QPushButton("VOLVER AL MENU", ui->graphicsView->viewport());
-    botonVolverMenu->setFixedSize(150, 40);
-    botonVolverMenu->setFocusPolicy(Qt::NoFocus);
-    botonVolverMenu->hide();
+    botonVolverMenu = new QPushButton("MENÚ PRINCIPAL", panelResultado);
 
     // Boton para continuar al segundo nivel
-    botonContinuarNivel2 = new QPushButton("CONTINUAR AL NIVEL 2", ui->graphicsView->viewport());
-    botonContinuarNivel2->setFixedSize(240, 45);
-    botonContinuarNivel2->setFocusPolicy(Qt::NoFocus);
-    botonContinuarNivel2->hide();
+    botonContinuarNivel2 = new QPushButton("CONTINUAR", panelResultado);
+
+    for (QPushButton *boton : {botonReiniciar, botonContinuarNivel2, botonVolverMenu}) {
+        boton->setFixedSize(190, 48);
+        boton->setFocusPolicy(Qt::NoFocus);
+        boton->setStyleSheet(estiloBotones);
+        botonesResultado->addWidget(boton);
+    }
+    panelResultado->hide();
 
     // Continuar al segundo nivel
     connect(botonContinuarNivel2, &QPushButton::clicked, this, [this]() {
@@ -98,48 +139,39 @@ MainWindow::MainWindow(QWidget *parent)
     // Colocar la portada como fondo del menu
     QPixmap portada(":/imagenes/imagenes/portada.png");
 
-    QGraphicsPixmapItem *fondoPortada = escenaMenu->addPixmap(
-        portada.scaled(900, 500, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
-        );
+    QGraphicsPixmapItem *fondoPortada = escenaMenu->addPixmap(portada.scaled(900, 500, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
 
     fondoPortada->setPos(0, 0);
     fondoPortada->setZValue(-1);
 
+    // Panel del menu
+    escenaMenu->addRect(128, 72, 644, 350, QPen(QColor("#C9A563"), 3), QColor(34, 37, 34, 232));
+
     // Titulo del videojuego
-    QGraphicsTextItem *titulo = escenaMenu->addText("KUNG FU PAISA", QFont("Arial", 36, QFont::Bold));
-    titulo->setDefaultTextColor(QColor(30, 80, 45));
-    titulo->setPos((900 - titulo->boundingRect().width()) / 2, 75);
+    QFont fuenteMenu = font();
+    fuenteMenu.setBold(true);
+    fuenteMenu.setPixelSize(58);
+    QGraphicsTextItem *titulo = escenaMenu->addText("KUNG FU PAISA", fuenteMenu);
+    titulo->setDefaultTextColor(QColor("#FFF3D6"));
+    titulo->setPos((900 - titulo->boundingRect().width()) / 2, 92);
 
     // Historia del juego
-    QGraphicsTextItem *descripcion = escenaMenu->addText(
-        "Ayuda a Po a recolectar las flores para su silleta\n"
-        "y llevarlas a la ciudad de Medellin.\n"
-        "Para lograrlo, debera superar diferentes desafios.\n"
-        "¡Elige la dificultad de tu aventura!",
-        QFont("Arial", 15));
-
-    descripcion->setDefaultTextColor(QColor(40, 60, 50));
-    descripcion->setPos(340, 175);
+    fuenteMenu.setBold(false);
+    fuenteMenu.setPixelSize(23);
+    QString historia = "Ayuda a Po a recolectar las flores para su silleta\ny llevarlas a la ciudad de Medellín.\nPara lograrlo, deberá superar diferentes desafíos.\n¡Elige la dificultad de tu aventura!";
+    QGraphicsTextItem *descripcion = escenaMenu->addText(historia, fuenteMenu);
+    QTextOption alineacion = descripcion->document()->defaultTextOption();
+    alineacion.setAlignment(Qt::AlignHCenter);
+    descripcion->document()->setDefaultTextOption(alineacion);
+    descripcion->setTextWidth(596);
+    descripcion->setDefaultTextColor(QColor("#D1B88D"));
+    descripcion->setPos(152, 183);
 
     // Botones de dificultad
-    QPushButton *botonFacil = new QPushButton("FACIL");
-    QPushButton *botonDificil = new QPushButton("DIFICIL");
-
-    botonFacil->setFixedSize(180, 55);
-    botonDificil->setFixedSize(180, 55);
-    QString estiloBotones =
-        "QPushButton {"
-        "background-color: #2E703C;"
-        "color: white;"
-        "border: 2px solid #D5B66C;"
-        "border-radius: 12px;"
-        "font-size: 16px;"
-        "font-weight: bold;"
-        "}"
-        "QPushButton:hover {"
-        "background-color: #439653;"
-        "}";
-
+    QPushButton *botonFacil = new QPushButton("FÁCIL");
+    QPushButton *botonDificil = new QPushButton("DIFÍCIL");
+    botonFacil->setFixedSize(180, 54);
+    botonDificil->setFixedSize(180, 54);
     botonFacil->setStyleSheet(estiloBotones);
     botonDificil->setStyleSheet(estiloBotones);
 
@@ -147,8 +179,8 @@ MainWindow::MainWindow(QWidget *parent)
     QGraphicsProxyWidget *botonEscenaFacil = escenaMenu->addWidget(botonFacil);
     QGraphicsProxyWidget *botonEscenaDificil = escenaMenu->addWidget(botonDificil);
 
-    botonEscenaFacil->setPos(250, 350);
-    botonEscenaDificil->setPos(470, 350);
+    botonEscenaFacil->setPos(258, 333);
+    botonEscenaDificil->setPos(462, 333);
 
     // Iniciar el modo facil
     connect(botonFacil, &QPushButton::clicked, this, [this]() {
@@ -225,58 +257,45 @@ void MainWindow::iniciarNivel()
 
 void MainWindow::mostrarResultado(const QString &texto, bool victoria)
 {
-    // Mostrar el mensaje en el escenario actual
-    QGraphicsScene *escena = ui->graphicsView->scene();
+    // Mostrar el mensaje del nivel
+    tituloResultado->setText(victoria ? "VICTORIA" : "DERROTA");
+    tituloResultado->setStyleSheet(victoria ? "color: #C9A563;" : "color: #EF6666;");
+    mensajeResultado->setText(texto);
 
-    QGraphicsTextItem *mensaje = escena->addText(texto, QFont("Arial", 24, QFont::Bold));
-    mensaje->setDefaultTextColor(victoria ? Qt::darkGreen : Qt::darkRed);
-    mensaje->setZValue(10);
-
-    QPointF centro = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->rect().center());
-    mensaje->setPos(centro.x() - mensaje->boundingRect().width() / 2, centro.y() - 60);
-
-    // Posicionar los botones
-    int centroX = ui->graphicsView->viewport()->width() / 2;
-    int posicionY = ui->graphicsView->viewport()->height() / 2 + 65;
-
-    if (victoria) {
-        botonReiniciar->hide();
-        botonVolverMenu->move(centroX - 75, posicionY);
-    }
-    else {
-        botonReiniciar->move(centroX - 160, posicionY);
-        botonVolverMenu->move(centroX + 10, posicionY);
-        botonReiniciar->show();
-        botonReiniciar->raise();
-    }
-
-    botonVolverMenu->show();
-    botonVolverMenu->raise();
+    // Mostrar las opciones del resultado
+    bool continuar = victoria && nivel2 == nullptr;
+    botonContinuarNivel2->setVisible(continuar);
+    botonReiniciar->setVisible(!victoria);
+    botonVolverMenu->setVisible(!continuar);
+    panelResultado->show();
+    posicionarResultado();
+    panelResultado->raise();
 }
 
 void MainWindow::mostrarVictoria()
 {
-    QGraphicsScene *escena = nivel1->obtenerEscena();
-    QGraphicsTextItem *mensaje = escena->addText("¡NIVEL 1 COMPLETADO!", QFont("Arial", 24, QFont::Bold));
-    mensaje->setDefaultTextColor(Qt::darkGreen);
-    mensaje->setZValue(10);
+    mostrarResultado("¡NIVEL 1 COMPLETADO!", true);
+}
 
-    QPointF centro = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->rect().center());
-    mensaje->setPos(centro.x() - mensaje->boundingRect().width() / 2,
-                    centro.y() - mensaje->boundingRect().height() / 2);
+void MainWindow::posicionarResultado()
+{
+    if (!panelResultado || panelResultado->isHidden()) {
+        return;
+    }
 
-    // Mostrar boton para continuar
-    int centroX = ui->graphicsView->viewport()->width() / 2;
-    int centroY = ui->graphicsView->viewport()->height() / 2;
-
-    botonContinuarNivel2->move(centroX - botonContinuarNivel2->width() / 2, centroY + 65);
-    botonContinuarNivel2->show();
-    botonContinuarNivel2->raise();
+    // Posicionar el panel y los botones
+    QWidget *viewport = ui->graphicsView->viewport();
+    int ancho = qBound(1, viewport->width() - 24, 520);
+    botonesResultado->setDirection(ancho >= 440 ? QBoxLayout::LeftToRight : QBoxLayout::TopToBottom);
+    panelResultado->setFixedWidth(ancho);
+    panelResultado->adjustSize();
+    panelResultado->move((viewport->width() - panelResultado->width()) / 2, qMax(0, (viewport->height() - panelResultado->height()) / 2));
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
+    posicionarResultado();
 
     if (!ui->graphicsView->scene()) {
         return;
@@ -291,6 +310,7 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 
     if (nivel1 != nullptr && ui->graphicsView->scene() == nivel1->obtenerEscena()) {
         ui->graphicsView->centerOn(nivel1->obtenerXPo(), 250);
+        nivel1->posicionarInterfaz();
     }
 }
 
@@ -306,7 +326,7 @@ void MainWindow::iniciarNivel2()
     });
 
     connect(nivel2, &Nivel2::nivelCompletado, this, [this]() {
-        mostrarResultado("¡PO COMPLETO SU SILLETA!", true);
+        mostrarResultado("¡PO COMPLETÓ SU SILLETA!", true);
     });
 
     // Cambiar de escenario
@@ -315,9 +335,7 @@ void MainWindow::iniciarNivel2()
     ui->graphicsView->setAlignment(Qt::AlignCenter);
 
     // Ocultar los botones
-    botonContinuarNivel2->hide();
-    botonReiniciar->hide();
-    botonVolverMenu->hide();
+    panelResultado->hide();
 
     // Liberar el primer nivel
     delete nivel1;

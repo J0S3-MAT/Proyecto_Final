@@ -2,6 +2,8 @@
 #include <QTransform>
 #include <QKeyEvent>
 
+static constexpr double duracionRecargaDash = 1.5;
+
 Po::Po(QGraphicsScene *escena, bool permiteDash)
 {
     dashHabilitado = permiteDash;
@@ -184,7 +186,7 @@ void Po::mover(double dt, const std::vector<PlataformaOscilante*> &plataformas)
 
 void Po::iniciarDash()
 {
-    if (!dashHabilitado || tiempoDash > 0 || tiempoRecargaDash > 0 || saltando || cayendo) {
+    if (!puedeIniciarDash()) {
         return;
     }
 
@@ -194,7 +196,17 @@ void Po::iniciarDash()
 
     direccionDash = mirandoIzquierda ? -1 : 1;
     tiempoDash = 0.3;
-    tiempoRecargaDash = 1.5;
+    tiempoRecargaDash = duracionRecargaDash;
+}
+
+bool Po::puedeIniciarDash() const
+{
+    return dashHabilitado && !(tiempoDash > 0 || tiempoRecargaDash > 0 || saltando || cayendo);
+}
+
+double Po::obtenerProgresoRecargaDash() const
+{
+    return qBound(0.0, 1.0 - tiempoRecargaDash / duracionRecargaDash, 1.0);
 }
 
 void Po::saltar()
