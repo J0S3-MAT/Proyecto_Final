@@ -1,8 +1,10 @@
 #include "po.h"
 #include <QTransform>
+#include <QKeyEvent>
 
-Po::Po(QGraphicsScene *escena)
+Po::Po(QGraphicsScene *escena, bool permiteDash)
 {
+    dashHabilitado = permiteDash;
     // Imagen de reposo
     imagenReposo = QPixmap(":/imagenes/imagenes/po_reposo.png").scaledToHeight(100, Qt::SmoothTransformation);
 
@@ -23,14 +25,76 @@ Po::Po(QGraphicsScene *escena)
     for (int i = 0; i < 4; i++) {
         imagenChoque[i] = QPixmap(QString(":/imagenes/imagenes/po_choque%1.png").arg(i + 1)).scaledToHeight(100, Qt::SmoothTransformation);
     }
+
+    // Imagenes del dash
+    for (int i = 0; i < 5; i++) {
+        imagenDash[i] = QPixmap(QString(":/imagenes/imagenes/po_dash%1.png").arg(i + 1)).scaledToHeight(100, Qt::SmoothTransformation);
+    }
 }
 
-
-void Po::mover(double dt, bool izquierda, bool derecha, const std::vector<PlataformaOscilante*> &plataformas)
+bool Po::presionarTecla(int tecla, bool repetida)
 {
+    // Movimiento horizontal
+    if (tecla == Qt::Key_A) {
+        izquierda = true;
+    }
+
+    if (tecla == Qt::Key_D) {
+        derecha = true;
+    }
+
+    // Comprobar si se realiza un salto
+    if (tecla == Qt::Key_Space && !repetida) {
+        bool estabaSaltando = saltando;
+        saltar();
+        return !estabaSaltando && saltando;
+    }
+
+    // Comprobar si se realiza un dash
+    if (tecla == Qt::Key_Shift && !repetida) {
+        bool estabaHaciendoDash = tiempoDash > 0;
+        iniciarDash();
+        return !estabaHaciendoDash && tiempoDash > 0;
+    }
+
+    return false;
+}
+
+void Po::soltarTecla(int tecla, bool repetida)
+{
+    if (repetida) {
+        return;
+    }
+
+    if (tecla == Qt::Key_A) {
+        izquierda = false;
+    }
+
+    if (tecla == Qt::Key_D) {
+        derecha = false;
+    }
+}
+
+void Po::mover(double dt, const std::vector<PlataformaOscilante*> &plataformas)
+{
+
+    // Actualizar duracion del estado pesado
+    if (tiempoPesado > 0) {
+        tiempoPesado -= dt;
+    }
 
     // Guardar la posicion antes de moverse
     double xAnterior = imagen->x();
+
+    // Recarga invulnerable
+    if (tiempoInvulnerable > 0) {
+        tiempoInvulnerable -= dt;
+    }
+
+    // Recarga del dash
+    if (tiempoRecargaDash > 0 && tiempoDash <= 0) {
+        tiempoRecargaDash -= dt;
+    }
 
     // Actualizar duracion de la velocidad adicional
     if (tiempoRapido > 0) {
@@ -41,6 +105,11 @@ void Po::mover(double dt, bool izquierda, bool derecha, const std::vector<Plataf
         imagen->moveBy(velocidadChoque * dt, 0);
         tiempoChoque -= dt;
     }
+    else if (tiempoDash > 0) {
+        double paso = qMin(dt, tiempoDash);
+        imagen->moveBy(direccionDash * 750 * paso, 0);
+        tiempoDash -= paso;
+    }
     else {
 
         double velocidadActual = velocidad;
@@ -48,7 +117,6 @@ void Po::mover(double dt, bool izquierda, bool derecha, const std::vector<Plataf
         // Estado Pesado
         if (tiempoPesado > 0) {
             velocidadActual = velocidad * 0.7;
-            tiempoPesado -= dt;
         }
 
         // Velocidad adicional del dumpling bueno
@@ -114,9 +182,24 @@ void Po::mover(double dt, bool izquierda, bool derecha, const std::vector<Plataf
     }
 }
 
+void Po::iniciarDash()
+{
+    if (!dashHabilitado || tiempoDash > 0 || tiempoRecargaDash > 0 || saltando || cayendo) {
+        return;
+    }
+
+    if (izquierda != derecha) {
+        mirandoIzquierda = izquierda;
+    }
+
+    direccionDash = mirandoIzquierda ? -1 : 1;
+    tiempoDash = 0.3;
+    tiempoRecargaDash = 1.5;
+}
+
 void Po::saltar()
 {
-    if (!saltando && !cayendo) {
+    if (!saltando && !cayendo && tiempoDash <= 0) {
         saltando = true;
         plataformaActual = nullptr;
         tiempoSalto = 0;
@@ -187,7 +270,7 @@ void Po::actualizarMovimientoVertical(double dt, const std::vector<PlataformaOsc
 }
 
 
-void Po::actualizarAnimacion(double dt, bool izquierda, bool derecha)
+void Po::actualizarAnimacion(double dt)
 {
     bool caminando = (izquierda != derecha) && !saltando && !cayendo;
     bool cambioDireccion = false;
@@ -219,6 +302,25 @@ void Po::actualizarAnimacion(double dt, bool izquierda, bool derecha)
         tiempoAnimacion = 0;
     }
 
+    // Animacion del dash
+    else if (tiempoDash > 0) {
+        int indice = (0.3 - tiempoDash) / 0.06;
+
+        if (indice > 4) {
+            indice = 4;
+        }
+
+        QPixmap nuevaImagen = imagenDash[indice];
+
+        if (direccionDash == -1) {
+            nuevaImagen = nuevaImagen.transformed(QTransform().scale(-1, 1));
+        }
+
+        imagen->setPixmap(nuevaImagen);
+        estabaCaminando = false;
+        fotograma = 0;
+        tiempoAnimacion = 0;
+    }
 
     // Animacion del salto y la caida
     else if (saltando || cayendo) {
@@ -322,7 +424,7 @@ int Po::obtenerFlores() const
     return flores;
 }
 
-double Po::recibirChoque(double velocidadCabra, bool izquierda, bool derecha)
+double Po::recibirChoque(double velocidadCabra)
 {
     const double masaPo = 80;
     const double masaCabra = 100;
@@ -341,7 +443,7 @@ double Po::recibirChoque(double velocidadCabra, bool izquierda, bool derecha)
     tiempoChoque = 0.4;
 
     // Penalizacion por choque
-    flores -= 5;
+    flores -= 2;
 
     if (flores < 0) {
         flores = 0;
@@ -350,4 +452,23 @@ double Po::recibirChoque(double velocidadCabra, bool izquierda, bool derecha)
     tiempoPesado = 3.0;
 
     return (2 * masaPo * velocidadPo + (masaCabra - masaPo) * velocidadCabra) / (masaPo + masaCabra);
+}
+
+void Po::recibirDanio()
+{
+    if (tiempoInvulnerable <= 0 && vidas > 0) {
+        vidas--;
+        tiempoInvulnerable = 1.0;
+    }
+}
+
+int Po::obtenerVidas() const
+{
+    return vidas;
+}
+
+void Po::ralentizar()
+{
+    // Activar el estado pesado
+    tiempoPesado = 3.0;
 }

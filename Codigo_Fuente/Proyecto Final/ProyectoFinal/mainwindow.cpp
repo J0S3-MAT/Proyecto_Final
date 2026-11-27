@@ -57,26 +57,19 @@ MainWindow::MainWindow(QWidget *parent)
     botonContinuarNivel2->setFocusPolicy(Qt::NoFocus);
     botonContinuarNivel2->hide();
 
+    // Continuar al segundo nivel
     connect(botonContinuarNivel2, &QPushButton::clicked, this, [this]() {
-        // Crear el segundo nivel
-        nivel2 = new Nivel2();
-
-        // Cambiar de escenario
-        ui->graphicsView->setScene(nivel2->obtenerEscena());
-        ui->graphicsView->fitInView(nivel2->obtenerEscena()->sceneRect(), Qt::KeepAspectRatio);
-        ui->graphicsView->setAlignment(Qt::AlignCenter);
-
-        botonContinuarNivel2->hide();
-
-        // Liberar el primer nivel, que ya terminamos
-        delete nivel1;
-        nivel1 = nullptr;
-
-        setFocus();
+        iniciarNivel2();
     });
 
-    // Reiniciar conservando la dificultad
+    // Reiniciar conservando el nivel y la dificultad
     connect(botonReiniciar, &QPushButton::clicked, this, [this]() {
+
+        if (nivel2 != nullptr) {
+            iniciarNivel2();
+            return;
+        }
+
         MainWindow *nueva = new MainWindow();
         nueva->setAttribute(Qt::WA_DeleteOnClose);
         nueva->setGeometry(geometry());
@@ -217,7 +210,7 @@ void MainWindow::iniciarNivel()
 
     connect(nivel1, &Nivel1::nivelPerdido, this, [this](const QString &texto) {
         musicaNivel1->stop();
-        mostrarDerrota(texto);
+        mostrarResultado(texto);
     });
 
     connect(nivel1, &Nivel1::nivelCompletado, this, [this]() {
@@ -230,26 +223,34 @@ void MainWindow::iniciarNivel()
     setFocus();
 }
 
-void MainWindow::mostrarDerrota(const QString &texto)
+void MainWindow::mostrarResultado(const QString &texto, bool victoria)
 {
-    // El temporizador del nivel ya fue detenido por Nivel1.
-    QGraphicsScene *escena = nivel1->obtenerEscena();
+    // Mostrar el mensaje en el escenario actual
+    QGraphicsScene *escena = ui->graphicsView->scene();
 
     QGraphicsTextItem *mensaje = escena->addText(texto, QFont("Arial", 24, QFont::Bold));
-    mensaje->setDefaultTextColor(Qt::darkRed);
+    mensaje->setDefaultTextColor(victoria ? Qt::darkGreen : Qt::darkRed);
     mensaje->setZValue(10);
 
     QPointF centro = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->rect().center());
     mensaje->setPos(centro.x() - mensaje->boundingRect().width() / 2, centro.y() - 60);
 
+    // Posicionar los botones
     int centroX = ui->graphicsView->viewport()->width() / 2;
     int posicionY = ui->graphicsView->viewport()->height() / 2 + 65;
 
-    botonReiniciar->move(centroX - 160, posicionY);
-    botonVolverMenu->move(centroX + 10, posicionY);
-    botonReiniciar->show();
+    if (victoria) {
+        botonReiniciar->hide();
+        botonVolverMenu->move(centroX - 75, posicionY);
+    }
+    else {
+        botonReiniciar->move(centroX - 160, posicionY);
+        botonVolverMenu->move(centroX + 10, posicionY);
+        botonReiniciar->show();
+        botonReiniciar->raise();
+    }
+
     botonVolverMenu->show();
-    botonReiniciar->raise();
     botonVolverMenu->raise();
 }
 
@@ -291,4 +292,36 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     if (nivel1 != nullptr && ui->graphicsView->scene() == nivel1->obtenerEscena()) {
         ui->graphicsView->centerOn(nivel1->obtenerXPo(), 250);
     }
+}
+
+void MainWindow::iniciarNivel2()
+{
+    // Crear o reiniciar el segundo nivel
+    delete nivel2;
+    nivel2 = new Nivel2(modoDificil);
+
+    // Conectar las senales del segundo nivel
+    connect(nivel2, &Nivel2::nivelPerdido, this, [this](const QString &texto) {
+        mostrarResultado(texto);
+    });
+
+    connect(nivel2, &Nivel2::nivelCompletado, this, [this]() {
+        mostrarResultado("¡PO COMPLETO SU SILLETA!", true);
+    });
+
+    // Cambiar de escenario
+    ui->graphicsView->setScene(nivel2->obtenerEscena());
+    ui->graphicsView->fitInView(nivel2->obtenerEscena()->sceneRect(), Qt::KeepAspectRatio);
+    ui->graphicsView->setAlignment(Qt::AlignCenter);
+
+    // Ocultar los botones
+    botonContinuarNivel2->hide();
+    botonReiniciar->hide();
+    botonVolverMenu->hide();
+
+    // Liberar el primer nivel
+    delete nivel1;
+    nivel1 = nullptr;
+
+    setFocus();
 }

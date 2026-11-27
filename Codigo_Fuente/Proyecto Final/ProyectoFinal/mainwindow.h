@@ -42,7 +42,8 @@ private:
     QAudioOutput *salidaAudio = nullptr;
 
     void iniciarNivel();
-    void mostrarDerrota(const QString &texto);
+    void iniciarNivel2();
+    void mostrarResultado(const QString &texto, bool victoria = false);
     void mostrarVictoria();
 };
 

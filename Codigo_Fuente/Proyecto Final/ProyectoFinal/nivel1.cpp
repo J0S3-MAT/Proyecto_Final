@@ -44,12 +44,12 @@ Nivel1::Nivel1(QGraphicsView *vista, bool dificil, QObject *parent)
 
 
     // Contador de flores
-    textoFlores = escena->addText("Flores: 0/30", QFont("Arial", 16, QFont::Bold));
+    textoFlores = escena->addText("Flores: 0/10", QFont("Arial", 16, QFont::Bold));
     textoFlores->setDefaultTextColor(Qt::darkGreen);
     textoFlores->setPos(20, 15);
 
     // Contador de tiempo
-    textoTiempo = escena->addText("Tiempo: 60 s", QFont("Arial", 16, QFont::Bold));
+    textoTiempo = escena->addText("Tiempo: 15 s", QFont("Arial", 16, QFont::Bold));
     textoTiempo->setDefaultTextColor(Qt::darkGreen);
     textoTiempo->setPos(710, 15);
 
@@ -87,7 +87,7 @@ void Nivel1::iniciar()
         int inicioTrampa = x;
 
         // Crear lava y escaleras solamente en modo dificil
-        if (modoDificil && QRandomGenerator::global()->bounded(100) < 50) {
+        if (modoDificil && QRandomGenerator::global()->bounded(100) < 15) {
 
             for (int i = 0; i < 3; i++) {
                 int yEscalon = 400 - i * 70;
@@ -128,8 +128,8 @@ void Nivel1::iniciar()
     }
 
     // Crear flores aleatorias segun la dificultad
-    int distanciaMinima = modoDificil ? 320 : 450;
-    int distanciaMaxima = modoDificil ? 551 : 751;
+    int distanciaMinima = modoDificil ? 120 : 150;
+    int distanciaMaxima = modoDificil ? 181 : 221;
 
     for (int x = 240; x < 34500; x += QRandomGenerator::global()->bounded(distanciaMinima, distanciaMaxima)) {
         flores.push_back(new Flor(escena, x, 490));
@@ -170,8 +170,6 @@ void Nivel1::iniciar()
     vista->setAlignment(Qt::AlignHCenter | Qt::AlignBottom);
 
     activo = true;
-    izquierda = false;
-    derecha = false;
     cabra->configurarDificultad(modoDificil);
 
     reloj.start();
@@ -180,32 +178,15 @@ void Nivel1::iniciar()
 
 void Nivel1::presionarTecla(int tecla, bool repetida)
 {
-    if (!activo) {
-        return;
-    }
-
-    if (tecla == Qt::Key_A) {
-        izquierda = true;
-    }
-    if (tecla == Qt::Key_D) {
-        derecha = true;
-    }
-    if (tecla == Qt::Key_Space && !repetida) {
-        personaje->saltar();
+    if (activo) {
+        personaje->presionarTecla(tecla, repetida);
     }
 }
 
 void Nivel1::soltarTecla(int tecla, bool repetida)
 {
-    if (!activo || repetida) {
-        return;
-    }
-
-    if (tecla == Qt::Key_A) {
-        izquierda = false;
-    }
-    if (tecla == Qt::Key_D) {
-        derecha = false;
+    if (activo) {
+        personaje->soltarTecla(tecla, repetida);
     }
 }
 
@@ -261,7 +242,7 @@ void Nivel1::actualizarJuego()
 
     // Verificar si se termino el tiempo
     if (tiempoRestante <= 0) {
-        terminarConDerrota("TIEMPO AGOTADO\nNo reuniste las 30 flores");
+        terminarConDerrota("TIEMPO AGOTADO\nNo reuniste las 10 flores");
         return;
     }
 
@@ -270,7 +251,7 @@ void Nivel1::actualizarJuego()
         plataforma->actualizar(tiempoJuego);
     }
 
-    personaje->mover(dt, izquierda, derecha, plataformas);
+    personaje->mover(dt, plataformas);
 
     // Colision con la lava
     QRectF areaPo = personaje->obtenerArea();
@@ -294,9 +275,9 @@ void Nivel1::actualizarJuego()
     bool tocandoCabra = personaje->obtenerArea().intersects(cabra->obtenerArea());
 
     if (tocandoCabra && !contactoCabra) {
-        double nuevaVelocidadCabra = personaje->recibirChoque(cabra->obtenerVelocidad(), izquierda, derecha);
+        double nuevaVelocidadCabra = personaje->recibirChoque(cabra->obtenerVelocidad());
         cabra->recibirChoque(nuevaVelocidadCabra);
-        textoFlores->setPlainText(QString("Flores: %1/30").arg(personaje->obtenerFlores()));
+        textoFlores->setPlainText(QString("Flores: %1/10").arg(personaje->obtenerFlores()));
     }
 
     contactoCabra = tocandoCabra;
@@ -305,7 +286,7 @@ void Nivel1::actualizarJuego()
     for (Flor *flor : flores) {
         if (flor->recolectarSiToca(personaje->obtenerArea())) {
             personaje->sumarFlor();
-            textoFlores->setPlainText(QString("Flores: %1/30").arg(personaje->obtenerFlores()));
+            textoFlores->setPlainText(QString("Flores: %1/10").arg(personaje->obtenerFlores()));
         }
     }
 
@@ -330,7 +311,7 @@ void Nivel1::actualizarJuego()
     }
 
     // Verificar si Po completo el primer nivel
-    if (personaje->obtenerFlores() >= 30) {
+    if (personaje->obtenerFlores() >= 10) {
         temporizador->stop();
         activo = false;
         emit nivelCompletado();
@@ -340,7 +321,7 @@ void Nivel1::actualizarJuego()
 
     //para que camine
     // Actualizar las animaciones de Po
-    personaje->actualizarAnimacion(dt, izquierda, derecha);
+    personaje->actualizarAnimacion(dt);
 
     // Camara horizontal
     vista->centerOn(personaje->obtenerArea().center().x(), 300);
