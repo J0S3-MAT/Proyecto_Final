@@ -110,7 +110,7 @@ void Nivel1::iniciar()
         int inicioTrampa = x;
 
         // Crear lava y escaleras solamente en modo dificil
-        if (modoDificil && QRandomGenerator::global()->bounded(100) < 15) {
+        if (modoDificil && QRandomGenerator::global()->bounded(100) < 25) {
 
             for (int i = 0; i < 3; i++) {
                 int yEscalon = 400 - i * 70;
@@ -141,7 +141,7 @@ void Nivel1::iniciar()
         plataformas.push_back(plataforma);
 
         // Algunas plataformas tienen una flor
-        if (QRandomGenerator::global()->bounded(100) < 90) {
+        if (QRandomGenerator::global()->bounded(100) < 60) {
             double ancho = plataforma->obtenerRectangulo()->rect().width();
             flores.push_back(new Flor(escena, (ancho - 30) / 2, -30, plataforma->obtenerRectangulo()));
         }
@@ -151,11 +151,28 @@ void Nivel1::iniciar()
     }
 
     // Crear flores aleatorias segun la dificultad
-    int distanciaMinima = modoDificil ? 120 : 150;
-    int distanciaMaxima = modoDificil ? 181 : 221;
+    int distanciaMinima = modoDificil ? 190 : 220;
+    int distanciaMaxima = modoDificil ? 271 : 301;
 
     for (int x = 240; x < 34500; x += QRandomGenerator::global()->bounded(distanciaMinima, distanciaMaxima)) {
-        flores.push_back(new Flor(escena, x, 490));
+        // Verificar si hay lava en la posicion de la flor
+        bool sobreLava = false;
+
+        for (QGraphicsRectItem *trampa : trampas) {
+            QRectF areaLava = trampa->sceneBoundingRect();
+
+            // Evitar flores sobre la lava y muy cerca de sus bordes
+            if (x + 40 > areaLava.left() &&
+                x < areaLava.right() + 10) {
+                sobreLava = true;
+                break;
+            }
+        }
+
+        // Crear la flor solamente si no hay lava
+        if (!sobreLava) {
+            flores.push_back(new Flor(escena, x, 490));
+        }
     }
 
 
@@ -302,7 +319,17 @@ void Nivel1::actualizarJuego()
         QRectF areaTrampa = trampa->sceneBoundingRect();
 
         if (areaPo.right() > areaTrampa.left() && areaPo.left() < areaTrampa.right() && areaPo.bottom() >= 520) {
-            terminarConDerrota("¡CAISTE EN LA LAVA!");
+            // Mostrar a Po quemado
+            personaje->mostrarQuemado();
+
+            // Detener el juego para mantener el sprite
+            temporizador->stop();
+            activo = false;
+
+            // Mostrar derrota después de 200 milisegundos
+            QTimer::singleShot(200, this, [this]() {
+                terminarConDerrota("¡CAÍSTE EN LA LAVA!");
+            });
             return;
         }
     }

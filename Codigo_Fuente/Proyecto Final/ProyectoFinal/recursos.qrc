@@ -86,6 +86,7 @@
         <file>imagenes/tai_prep_envestir2.png</file>
         <file>imagenes/tai_prep_saltar1.png</file>
         <file>imagenes/tai_prep_saltar2.png</file>
+        <file>imagenes/po_quemado.png</file>
     </qresource>
     <qresource prefix="/fuentes">
         <file alias="PixelifySans.ttf">fuentes/PixelifySans.ttf</file>

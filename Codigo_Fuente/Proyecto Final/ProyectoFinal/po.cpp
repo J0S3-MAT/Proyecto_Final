@@ -516,3 +516,24 @@ bool Po::estaRalentizado() const
 {
     return tiempoPesado > 0;
 }
+
+
+void Po::mostrarQuemado()
+{
+    QPixmap sprite(":/imagenes/imagenes/po_quemado.png");
+
+    if (sprite.isNull()) {
+        return;
+    }
+
+    sprite = sprite.scaledToHeight(100, Qt::SmoothTransformation);
+
+    if (mirandoIzquierda) {
+        sprite = sprite.transformed(QTransform().scale(-1, 1));
+    }
+
+    imagen->setPixmap(sprite);
+
+    // Mostrar a Po por encima de la lava
+    imagen->setZValue(5);
+}

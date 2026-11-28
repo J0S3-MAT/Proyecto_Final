@@ -73,6 +73,7 @@ public:
     void activarVelocidad();
     int obtenerFlores() const;
     double recibirChoque(double velocidadCabra);
+    void mostrarQuemado();
 
     bool presionarTecla(int tecla, bool repetida);
     void soltarTecla(int tecla, bool repetida);
